@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html>
+ <head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width" />
+  <link rel="stylesheet" href="./trail.css" data-n-g="" />
+  <script src="./jq.js" ></script>
+  <script src="./popup.js" ></script>
+  <noscript data-n-css=""></noscript>
+    <title>WebTrailAI</title>
+ </head>
+  <body>
+    <div id="app">
+        <p class="header">WebTrailAI</p>
+        <div class="container">
+            <main class="main">
+                <ul class="nav">
+                   <li>您好 请： <button id="login-btn">登录</button></li>
+                   <li style="display: none;">Gwyy , 欢迎您</li>
+                   <li><button id="history-btn">每日总结</button></li>
+                </ul>
+                <div class="history-summary" style="display: none;">
+                    <ul>
+                        <li class="collapsed">
+                           <div class="date"><p data-time="2024-06-10">2024-06-10</p></div>
+                            <a class="summary-more" data-time="2024-06-10" href="javascript:void(0)">查看明细</a>
+                        </li>
+                           <li class="collapsed">
+                           <div class="date"><p data-time="2024-06-10">2024-06-9</p></div>
+                            <a class="summary-more" data-time="2024-06-9" href="javascript:void(0)">查看明细</a>
+                        </li>
+                       
+                    </ul>
+                  
+                </div>
+                <div class="search" id="search">
+                    <input type="text" id="search-input" placeholder="请输入关键词进行搜索" />
+                    <button id="search-btn">搜索</button>
+                </div>
+
+               <div class="content" id="content">
+                    <ul id="history-list">
+                        <li>
+                            <p class="title">ibnzUK/Next-Chrome-Starter: Next.js Chrome Extension Starter sdfdsfdsfdsfsf...</p>
+                            <a href="https://github.com/ibnzUK/Next-Chrome-Starter" target="_blank">https://github.com/ibnzUK/Next-Chrome-Starterdsfdsfdsfdsfdsfdsfdsffsd</a>
+                            <a class="delete" href="">X</a>
+                        </li>
+             
+                    </ul>
+               </div>
+                 <div class="load-more">加载中...</div>
+            </main>
+            
+           
+        </div>
+         <footer class="footer">
+                <button id="clear-all-btn">清空今日浏览历史（谨慎操作）</button>
+            </footer>
+    </div>
+
+
+    <div class="login-box" id="login-box">
+        <div class="login-content">
+            <span class="close-btn" id="login-close-btn">&times;</span>
+            <div class="login-header">
+                <div class="login-icon">🔐</div>
+                <h2>用户登录</h2>
+                <p class="login-subtitle">请输入您的账号信息</p>
+            </div>
+            <div class="login-form">
+                <div class="input-group">
+                    <span class="input-icon">👤</span>
+                    <input type="text" placeholder="请输入用户名" />
+                </div>
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" placeholder="请输入密码" />
+                </div>
+                <button class="login-submit">立即登录</button>
+              
+            </div>
+        </div>
+    </div>
+
+  </body>
+</html>

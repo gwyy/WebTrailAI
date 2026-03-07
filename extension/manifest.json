@@ -3,6 +3,12 @@
     "name": "WebTrailAI",
     "version": "1.0",
     "description": "WebTrail AI，帮助您轻松追踪每日浏览过的网站，并通过AI分析生成您的上网动向报告。",
+    "icons": {
+        "16": "icon.png",
+        "32": "icon.png",
+        "48": "icon.png",
+        "192": "icon.png"
+    },
     "action": {
         "default_icon": "icon.png",
         "default_title": "WebTrailAI",

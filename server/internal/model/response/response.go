@@ -15,8 +15,10 @@ type Response struct {
 type ResponseCode int
 
 const (
-	Success ResponseCode = 0
-	Error   ResponseCode = 1
+	Success    ResponseCode = 0
+	Error      ResponseCode = 1
+	JwtExpired ResponseCode = 403
+	NotFound   ResponseCode = 404
 )
 
 type ResponseMessage string
