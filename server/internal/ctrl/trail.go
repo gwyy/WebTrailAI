@@ -13,5 +13,4 @@ func (ctrl *Ctrl) TrailList(c *gin.Context) {
 		msg := fmt.Sprintf("id:%d 用户名：%s list", jwtUser.ID, jwtUser.Username)
 		response.OkWithMessage(msg, c)
 	}
-
 }

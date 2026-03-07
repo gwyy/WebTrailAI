@@ -70,13 +70,14 @@
             <div class="login-form">
                 <div class="input-group">
                     <span class="input-icon">👤</span>
-                    <input type="text" placeholder="请输入用户名" />
+                    <input type="text" id="login-username" placeholder="请输入用户名" />
                 </div>
                 <div class="input-group">
                     <span class="input-icon">🔒</span>
-                    <input type="password" placeholder="请输入密码" />
+                    <input type="password" id="login-password" placeholder="请输入密码" />
                 </div>
-                <button class="login-submit">立即登录</button>
+                <div id="login-error" style="color:#e74c3c;font-size:13px;margin-bottom:8px;display:none;"></div>
+                <button class="login-submit" id="login-submit-btn">立即登录</button>
               
             </div>
         </div>

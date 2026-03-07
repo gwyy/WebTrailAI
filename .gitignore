@@ -1,2 +1,4 @@
-.idea
+.idea/
+server/logs/
 server/log/
+.continue/

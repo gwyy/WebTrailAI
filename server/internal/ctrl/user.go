@@ -7,6 +7,7 @@ import (
 	"github.com/gwyy/WebTrailAI/server/internal/model/request"
 )
 
+
 // 用户登录逻辑
 func (ctrl *Ctrl) Authenticator(c *gin.Context) (any, error) {
 	loginReq := request.UserLogin{}

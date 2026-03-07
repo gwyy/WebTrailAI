@@ -77,9 +77,9 @@ function storeVisitedPage(page) {
 
 }
 
-//使用 fetch API 发送 POST 请求到服务器 URL：'https://tracer.marlon.life/tracer/upload1'。
+//使用 fetch API 发送 POST 请求到服务器 URL：'https://api.playwave.cc/tracer/upload'。
 function sendPageDataToServer(token, page) {
-    fetch('https://tracer.marlon.life/tracer/upload1', {
+    fetch('https://api.playwave.cc/tracer/upload', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
