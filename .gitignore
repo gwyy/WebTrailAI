@@ -2,3 +2,4 @@
 server/logs/
 server/log/
 .continue/
+.claude/
