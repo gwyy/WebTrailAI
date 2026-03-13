@@ -3,3 +3,4 @@ server/logs/
 server/log/
 .continue/
 .claude/
+./server/filedb/

@@ -40,6 +40,9 @@ func (r *Router) Init(gin *gin.Engine) {
 	gin.POST("/login", authJwtMiddleware.LoginHandler)
 	gin.POST("/refresh_token", authJwtMiddleware.RefreshHandler) // RFC 6749 compliant refresh endpoint
 	gin.POST("/logout", authJwtMiddleware.LogoutHandler)         // 登出（会调用你写的 logoutResponse）
+
+	// ==================== 其他 公开路由（不需要 Token）===================
+	gin.POST("/register", r.ctrl.Register)
 	// ==================== 保护路由组（需要 Token）===================
 	protected := gin.Group("/api")                    // 你可以改成 /admin、/user 等
 	protected.Use(authJwtMiddleware.MiddlewareFunc()) // ← 关键！所有下面接口都要登录
