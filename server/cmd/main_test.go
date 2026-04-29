@@ -11,7 +11,7 @@ type Fish struct {
 	Name string
 }
 
-func main() {
+func test() {
 	dir := "./filedb"
 	db, err := scribble.New(dir, nil)
 	if err != nil {
