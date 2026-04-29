@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"log"
+	"strings"
+	"testing"
 
 	"github.com/sdomino/scribble"
 )
@@ -11,7 +13,21 @@ type Fish struct {
 	Name string
 }
 
-func test() {
+func cleanInput(s string) string {
+	s = strings.TrimSpace(s)
+	s = strings.ReplaceAll(s, "\r\n", "\n")
+	s = strings.ReplaceAll(s, "\r", "\n")
+	return s
+}
+
+func TestB(t *testing.T) {
+	data := "    dfdf  \r\n dfdf   \rdd  \n33  "
+
+	log.Printf("原始: %q\n", data)
+	log.Printf("处理后: %q\n", cleanInput(data))
+}
+
+func TestA(t *testing.T) {
 	dir := "./filedb"
 	db, err := scribble.New(dir, nil)
 	if err != nil {
@@ -22,5 +38,4 @@ func test() {
 		fmt.Println("Error", err)
 	}
 	fmt.Println(fish.Name)
-
 }

@@ -16,6 +16,7 @@ import (
 	"github.com/gwyy/WebTrailAI/server/internal/logger"
 	"github.com/gwyy/WebTrailAI/server/internal/router"
 	"github.com/gwyy/WebTrailAI/server/internal/service"
+	scribble_manager "github.com/gwyy/WebTrailAI/server/pkg/scribble-manager"
 )
 
 func main() {
@@ -27,7 +28,13 @@ func main() {
 	//Init App
 	newConfig := config.NewConfig(configFile)
 	newLogger := logger.NewLogger(newConfig)
-	newService := service.NewService(newConfig, newLogger)
+	//实例化 model + service
+	newSm, err := scribble_manager.NewScribbleManager(newConfig, newLogger)
+	if err != nil {
+		newLogger.Fatal(err)
+	}
+	newService := service.NewService(newConfig, newLogger, newSm)
+	//实例化 controller
 	newCtrl := ctrl.NewCtrl(newService, newConfig, newLogger)
 	newRouter := router.NewRouter(newCtrl, newConfig, newLogger)
 

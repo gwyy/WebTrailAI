@@ -9,6 +9,10 @@ type AppConfig struct {
 	Log     Log    `yaml:"log" mapstructure:"log"`
 }
 
+type Db struct {
+	Filedir string `yaml:"filedir" mapstructure:"filedir"`
+}
+
 type Gin struct {
 	Host         string `yaml:"host" mapstructure:"host"`
 	Prefix       string `yaml:"prefix" mapstructure:"prefix"`
