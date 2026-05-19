@@ -6,7 +6,7 @@ secret: "wlzH68@G"
 gin:
   host: localhost
   ip: 0.0.0.0
-  port: 3457
+  port: 3459
   timeout: 5
   pprof: true
   prefix: ""

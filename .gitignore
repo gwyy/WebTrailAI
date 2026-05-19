@@ -1,6 +1,7 @@
 .idea/
 server/logs/
 server/log/
+server/filedb/
 .continue/
 .claude/
-./server/filedb/
+.vscode/

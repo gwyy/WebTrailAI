@@ -17,7 +17,7 @@
                 <ul class="nav">
                    <li>您好 请： <button id="login-btn">登录</button></li>
                    <li style="display: none;">Gwyy , 欢迎您</li>
-                   <li><button id="history-btn">每日总结</button></li>
+                   <li id="history-nav-item" style="display: none;"><button id="history-btn">每日总结</button></li>
                 </ul>
                 <div class="history-summary" style="display: none;">
                     <ul>
@@ -33,28 +33,16 @@
                     </ul>
                   
                 </div>
-                <div class="search" id="search">
-                    <input type="text" id="search-input" placeholder="请输入关键词进行搜索" />
-                    <button id="search-btn">搜索</button>
-                </div>
-
                <div class="content" id="content">
-                    <ul id="history-list">
-                        <li>
-                            <p class="title">ibnzUK/Next-Chrome-Starter: Next.js Chrome Extension Starter sdfdsfdsfdsfsf...</p>
-                            <a href="https://github.com/ibnzUK/Next-Chrome-Starter" target="_blank">https://github.com/ibnzUK/Next-Chrome-Starterdsfdsfdsfdsfdsfdsfdsffsd</a>
-                            <a class="delete" href="">X</a>
-                        </li>
-             
-                    </ul>
+                    <ul id="history-list"></ul>
                </div>
-                 <div class="load-more">加载中...</div>
+                 <div class="load-more" style="display: none;">加载中...</div>
             </main>
             
            
         </div>
          <footer class="footer">
-                <button id="clear-all-btn">清空今日浏览历史（谨慎操作）</button>
+                <button id="clear-all-btn" style="display: none;">清空今日浏览历史（谨慎操作）</button>
             </footer>
     </div>
 

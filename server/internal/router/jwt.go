@@ -14,29 +14,37 @@ import (
 *
 login
 
-	curl -X POST http://localhost:3457/login \
+	curl -X POST http://localhost:3459/login \
 	  -H "Content-Type: application/json" \
 	  -d '{
 	    "username": "ebwaaa",
 	    "password": "aaaaaa"
 	  }' -v
 
-export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzI1MzU2MDYsImlkIjoyLCJvcmlnX2lhdCI6MTc3MjUzNTU0NiwidXNlcm5hbWUiOiJlYndhYWEifQ.me4gB0vpdxvxLSx_miBry-VJ--0oo2QzYmGwiOfiDIo"
+{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzkyMDI3MjgsImlkIjoxLCJvcmlnX2lhdCI6MTc3OTE5OTEyOCwidXNlcm5hbWUiOiJlYndhYWEifQ.z9URM49IYqAeT51y2DDFxiCpp6RhzWUQX0U53kWKj7Y","expires_in":3600,"refresh_token":"DEbI9Db7zHsRD3mZRodwepvakMQcw3JEidl5IvAfQEw=","token_type":"Bearer"}
 
-{"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzI1MzM2OTgsImlkIjoyLCJvcmlnX2lhdCI6MTc3MjUzMDA5OCwidXNlcm5hbWUiOiJlYndhYWEifQ.lOePHcsKpb114tVS2aQeiNCwj-T6vh5PrBaFbMZmyzQ",
-"expires_in":3600,"refresh_token":"dfQHIXmi_I_-yaHdFQUlIb49LMTc9li2brqw1K-C-Gg=","token_type":"Bearer"}%
+	curl -X POST http://localhost:3459/register \
+	  -H "Content-Type: application/json" \
+	  -d '{
+	    "username": "ebwaaa",
+	    "password": "aaaaaa"
+	  }' -v
 
-	curl -X POST http://localhost:3457/refresh_token \
+{"code":0,"data":{"id":1,"username":"ebwaaa"},"message":"注册成功"}%
+
+export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzkyMDI3MjgsImlkIjoxLCJvcmlnX2lhdCI6MTc3OTE5OTEyOCwidXNlcm5hbWUiOiJlYndhYWEifQ.z9URM49IYqAeT51y2DDFxiCpp6RhzWUQX0U53kWKj7Y"
+
+	curl -X POST http://localhost:3459/refresh_token \
 	  -H "Content-Type: application/json" \
 	  -H "Authorization: Bearer $TOKEN" \
 	  -d '{
 	    "refresh_token": "'"VovCfO1xNfniZcz_5_ROt_5WjbJ-Mp15-BLxEhKpLpE="'"
 	  }' -v
 
-		curl -X POST http://localhost:3457/logout \
+		curl -X POST http://localhost:3459/logout \
 		  -H "Authorization: Bearer $TOKEN" -v
 
-		curl -X GET http://localhost:3457/api/list \
+		curl -X GET http://localhost:3459/api/list \
 			-H "Authorization: Bearer $TOKEN" -v
 */
 func (r *Router) initJWTParams(Authenticator func(c *gin.Context) (interface{}, error)) *jwt.GinJWTMiddleware {
