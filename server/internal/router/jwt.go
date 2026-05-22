@@ -12,16 +12,19 @@ import (
 
 /*
 *
-login
 
-	curl -X POST http://localhost:3459/login \
-	  -H "Content-Type: application/json" \
-	  -d '{
-	    "username": "ebwaaa",
-	    "password": "aaaaaa"
-	  }' -v
+	    //登录
+		curl -X POST http://localhost:3459/login \
+		  -H "Content-Type: application/json" \
+		  -d '{
+		    "username": "ebwaaa",
+		    "password": "aaaaaa"
+		  }' -v
 
+//返回
 {"access_token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzkyMDI3MjgsImlkIjoxLCJvcmlnX2lhdCI6MTc3OTE5OTEyOCwidXNlcm5hbWUiOiJlYndhYWEifQ.z9URM49IYqAeT51y2DDFxiCpp6RhzWUQX0U53kWKj7Y","expires_in":3600,"refresh_token":"DEbI9Db7zHsRD3mZRodwepvakMQcw3JEidl5IvAfQEw=","token_type":"Bearer"}
+
+//注册
 
 	curl -X POST http://localhost:3459/register \
 	  -H "Content-Type: application/json" \
@@ -30,7 +33,8 @@ login
 	    "password": "aaaaaa"
 	  }' -v
 
-{"code":0,"data":{"id":1,"username":"ebwaaa"},"message":"注册成功"}%
+//返回
+{"code":0,"data":{"id":1,"username":"ebwaaa"},"message":"注册成功"}
 
 export TOKEN="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzkyMDI3MjgsImlkIjoxLCJvcmlnX2lhdCI6MTc3OTE5OTEyOCwidXNlcm5hbWUiOiJlYndhYWEifQ.z9URM49IYqAeT51y2DDFxiCpp6RhzWUQX0U53kWKj7Y"
 

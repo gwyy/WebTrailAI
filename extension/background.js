@@ -1,127 +1,171 @@
+importScripts('auth.js');
 
+var MAX_VISITED_PAGES_LENGTH = 50;
+var DUPLICATE_PAGE_EVENT_TTL_MS = 3000;
+var recentPageEvents = {};
 
-//监听标签更新事件 当一个标签（tab）更新时触发。
-//status:complete表示页面加载完成，tab.active 表示标签处于活动状态（即用户正在查看该标签）。
-chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
-    if (tab.url.indexOf('chrome') === 0) {
+// 只采集后端可接受的 http/https 页面，浏览器内部页和本地文件不进入流程。
+function isUnsupportedUrl(url) {
+    return !url || !/^https?:\/\//i.test(url);
+}
+
+// 后端要求标题非空且不超过 512 个字符，前端先做一次轻量规整。
+function normalizeTrailTitle(title) {
+    var normalizedTitle = (title || '').trim();
+    if (!normalizedTitle) {
+        return '无标题页面';
+    }
+
+    var titleChars = Array.from(normalizedTitle);
+    if (titleChars.length > 512) {
+        return titleChars.slice(0, 512).join('');
+    }
+    return normalizedTitle;
+}
+
+// 同一页面加载时可能同时触发 tabs 和 content script 事件，短时间内只记录一次。
+function shouldSkipDuplicatePageEvent(tabId, url) {
+    var now = Date.now();
+    var eventKey = String(tabId || '') + '|' + url;
+    if (recentPageEvents[eventKey] && now - recentPageEvents[eventKey] < DUPLICATE_PAGE_EVENT_TTL_MS) {
+        return true;
+    }
+
+    recentPageEvents[eventKey] = now;
+    Object.keys(recentPageEvents).forEach(function(key) {
+        if (now - recentPageEvents[key] > DUPLICATE_PAGE_EVENT_TTL_MS * 4) {
+            delete recentPageEvents[key];
+        }
+    });
+    return false;
+}
+
+function buildPageData(result, fallbackTab) {
+    var pageUrl = (result && result.url) || (fallbackTab && fallbackTab.url);
+    if (isUnsupportedUrl(pageUrl)) {
+        return null;
+    }
+
+    return {
+        title: normalizeTrailTitle((result && result.title) || (fallbackTab && fallbackTab.title)),
+        url: pageUrl,
+        visitedAt: Date.now()
+    };
+}
+
+// 监听标签更新事件，页面加载完成且处于激活状态时采集页面信息。
+chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
+    if (isUnsupportedUrl(tab && tab.url)) {
         return;
     }
     if (changeInfo.status === 'complete' && tab.active) {
-        console.log("received tab update event: " + tab.url);
-        sendMessageToContentScript(tab);
+        console.log('received tab update event: ' + tab.url);
+        collectPageDetails(tab);
     }
 });
-//当收到来自其他部分（比如内容脚本）的消息时触发。
-//如果消息的 action 是 'contentScriptLoaded'（表示内容脚本已加载），则打印日志，并调用 sendMessageToContentScript 函数。
-chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (tab.url.indexOf('chrome') === 0) {
+
+// 内容脚本加载完成后主动通知后台，后台再向当前页面请求详情。
+chrome.runtime.onMessage.addListener(function(request, sender) {
+    var senderTab = sender && sender.tab;
+    if (!senderTab || isUnsupportedUrl(senderTab.url)) {
         return;
     }
+
     if (request.action === 'contentScriptLoaded') {
-        console.log("received tab update event: " + sender.tab.url);
-        sendMessageToContentScript(sender.tab);
+        console.log('received content script event: ' + senderTab.url);
+        collectPageDetails(senderTab);
     }
 });
-//向指定标签的内容脚本发送消息，action 为 'getPageDetails'。
-//接收响应后，提取页面的标题（title）、内容（content）和 URL。
-//如果有错误，打印错误日志。
-//然后调用 storeVisitedPage 函数存储这些数据。
-function sendMessageToContentScript(tab) {
-    chrome.tabs.sendMessage(tab.id, { action: 'getPageDetails' }, (result) => {
-        if (chrome.runtime.lastError) {
-            console.error(chrome.runtime.lastError);
+
+// 监听单页应用的前端路由变化，补齐 history.pushState 场景下的新页面记录。
+if (chrome.webNavigation && chrome.webNavigation.onHistoryStateUpdated) {
+    chrome.webNavigation.onHistoryStateUpdated.addListener(function(details) {
+        if (details.frameId !== 0 || isUnsupportedUrl(details.url)) {
             return;
         }
 
-        const pageData = {
-            title: result.title,
-            content: result.content,
-            url: result.url
-        };
-        //将页面数据存储到本地存储（chrome.storage.local）中，并发送到服务器。
-        storeVisitedPage(pageData)
+        chrome.tabs.get(details.tabId, function(tab) {
+            if (chrome.runtime.lastError) {
+                console.error(chrome.runtime.lastError);
+                return;
+            }
+            collectPageDetails({
+                id: details.tabId,
+                title: tab && tab.title,
+                url: details.url
+            });
+        });
+    }, {
+        url: [
+            { schemes: ['http'] },
+            { schemes: ['https'] }
+        ]
     });
 }
-//从本地存储（chrome.storage.local）获取已访问页面的列表（visitedPages），如果不存在则初始化为空数组。
+
+function collectPageDetails(tab) {
+    if (!tab || isUnsupportedUrl(tab.url) || shouldSkipDuplicatePageEvent(tab.id, tab.url)) {
+        return;
+    }
+    sendMessageToContentScript(tab);
+}
+
+// 向内容脚本请求当前页面详情，并在拿到结果后写入本地浏览记录。
+function sendMessageToContentScript(tab) {
+    chrome.tabs.sendMessage(tab.id, { action: 'getPageDetails' }, function(result) {
+        if (chrome.runtime.lastError) {
+            console.error(chrome.runtime.lastError);
+            var fallbackPage = buildPageData(null, tab);
+            if (fallbackPage) {
+                storeVisitedPage(fallbackPage);
+            }
+            return;
+        }
+
+        var pageData = buildPageData(result, tab);
+        if (!pageData) {
+            return;
+        }
+        console.log(pageData);
+        storeVisitedPage(pageData);
+    });
+}
+
+// 维护最近浏览记录列表，同一 URL 会被移动到列表顶部。
 function storeVisitedPage(page) {
-    //定义了一个最大长度（maxVisitedPagesLength）为 50，表示本地存储中最多只能保存 50 个访问页面的数据。
-    chrome.storage.local.get('visitedPages', (data) => {
-        const visitedPages = data.visitedPages || [];
-        const maxVisitedPagesLength = 50;  //本地存储最大个数
+    chrome.storage.local.get('visitedPages', function(data) {
+        var visitedPages = Array.isArray(data.visitedPages) ? data.visitedPages : [];
+        var existingIndex = visitedPages.findIndex(function(item) {
+            return item.url === page.url;
+        });
 
-        // Check if the page already exists in the list
-        const existingIndex = visitedPages.findIndex((p) => p.url === page.url);
-
-        // If the page exists, remove it from the list
         if (existingIndex !== -1) {
             visitedPages.splice(existingIndex, 1);
-        } else if (visitedPages.length >= maxVisitedPagesLength) {
-            // If the list is at the maximum length, remove the oldest page
+        } else if (visitedPages.length >= MAX_VISITED_PAGES_LENGTH) {
             visitedPages.pop();
         }
 
-        // Add the new page to the end of the list
         visitedPages.unshift(page);
-
-        // Update the storage with the new list
-        chrome.storage.local.set({ visitedPages: visitedPages });
-    });
-    //从本地存储中获取 token，如果存在且不为空，则调用 sendPageDataToServer 函数将页面数据发送到服务器。
-    chrome.storage.local.get('token', (tokenData) => {
-        let token = tokenData.token || "";
-        //如果有 token 才发送信息到后端
-        if (token && token != "") {
-            sendPageDataToServer(token, page);
-        }
+        chrome.storage.local.set({ visitedPages: visitedPages.slice(0, MAX_VISITED_PAGES_LENGTH) });
     });
 
+    syncVisitedPageToServer(page);
 }
 
-//使用 fetch API 发送 POST 请求到服务器 URL：'https://api.playwave.cc/tracer/upload'。
-function sendPageDataToServer(token, page) {
-    fetch('https://api.playwave.cc/tracer/upload', {
+// 已登录时把浏览记录同步到 Go 后端；未登录时只保留本地记录。
+function syncVisitedPageToServer(page) {
+    WebTrailAuth.requestProtectedJson('/api/trailAdd', {
         method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': "Bearer " + token
-        },
-        body: JSON.stringify(page)
-    })
-        .then((response) => {
-            if (response.ok) {
-                console.log('Page data successfully sent to server');
-            } else {
-                console.error('Failed to send page data to server');
-            }
-        })
-        .catch((error) => {
-            console.error('Error:', error);
-        });
+        body: {
+            title: page.title,
+            url: page.url
+        }
+    }).then(function(res) {
+        if (!res) {
+            return;
+        }
+        console.info('浏览记录已同步到后端:', page.url);
+    }).catch(function(error) {
+        console.error('同步浏览记录失败:', error);
+    });
 }
-
-
-/**
- tab:
-active: true
-audible: false
-autoDiscardable: true
-discarded: false
-favIconUrl: "https://static.zhihu.com/heifetz/favicon.ico"
-frozen: false
-groupId: -1
-height: 414
-highlighted: true
-id: 1469318342
-incognito: false
-index: 9
-lastAccessed: 1772009813037.675
-mutedInfo: {muted: false}
-pinned: false
-selected: true
-splitViewId: -1
-status: "complete"
-title: "仅凭ai真的能做好复杂项目吗？ - 知乎"
-url: "https://www.zhihu.com/question/1999041081275355787/answer/2009905093022082545"
-width: 1920
-windowId: 1469317312
- */

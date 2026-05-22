@@ -1,130 +1,352 @@
-$(function(){
-
-    // =========================================================
-    // Auth 工具函数
-    // =========================================================
-
-    var AUTH_KEY = {
-        jwt:            'wt_jwt_token',
-        jwtExpires:     'wt_jwt_expires_at',
-        refresh:        'wt_refresh_token',
-        refreshExpires: 'wt_refresh_expires_at',
-        username:       'wt_username',
-    };
-
-    var JWT_TTL_MS     = 60 * 60 * 1000;       // 1 小时
-    var REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000; // 7 天
-
-    function saveTokens(data, username) {
-        var now = Date.now();
-        localStorage.setItem(AUTH_KEY.jwt,            data.jwt_token);
-        localStorage.setItem(AUTH_KEY.jwtExpires,     now + JWT_TTL_MS);
-        localStorage.setItem(AUTH_KEY.refresh,        data.refresh_token);
-        localStorage.setItem(AUTH_KEY.refreshExpires, now + REFRESH_TTL_MS);
-        if (username) localStorage.setItem(AUTH_KEY.username, username);
+$(function() {
+    if (typeof WebTrailAuth === 'undefined') {
+        console.error('WebTrailAuth 未加载');
+        return;
     }
 
-    function clearTokens() {
-        Object.values(AUTH_KEY).forEach(function(k) { localStorage.removeItem(k); });
-    }
-
-    function isExpired(expiresAt) {
-        return !expiresAt || Date.now() >= parseInt(expiresAt, 10);
-    }
-
-    /**
-     * 获取有效的 jwt_token。
-     * - 若 jwt 未过期，直接返回。
-     * - 若 jwt 过期但 refresh_token 有效，自动刷新并返回新 jwt。
-     * - 若 refresh_token 也过期，返回 null（需重新登录）。
-     *
-     * 返回 Promise<string|null>
-     */
-    function getValidToken() {
-        var jwt        = localStorage.getItem(AUTH_KEY.jwt);
-        var jwtExp     = localStorage.getItem(AUTH_KEY.jwtExpires);
-        var refreshTok = localStorage.getItem(AUTH_KEY.refresh);
-        var refreshExp = localStorage.getItem(AUTH_KEY.refreshExpires);
-
-        if (!jwt) return Promise.resolve(null);
-
-        // jwt 仍有效
-        if (!isExpired(jwtExp)) {
-            return Promise.resolve(jwt);
-        }
-
-        // jwt 过期，尝试用 refresh_token 刷新
-        if (!refreshTok || isExpired(refreshExp)) {
-            clearTokens();
-            updateLoginUI(false);
-            return Promise.resolve(null);
-        }
-
-        return $.ajax({
-            url:         'https://api.playwave.cc/user/token/refresh',
-            type:        'POST',
-            contentType: 'application/json',
-            data:        JSON.stringify({ refresh_token: refreshTok }),
-        }).then(function(res) {
-            if (res && res.code === 1) {
-                saveTokens(res);
-                return res.jwt_token;
-            }
-            clearTokens();
-            updateLoginUI(false);
-            return null;
-        }).catch(function() {
-            clearTokens();
-            updateLoginUI(false);
-            return null;
-        });
-    }
+    var authMode = 'login';
+    var isShowingSummary = false;
+    var currentLoggedIn = false;
+    var VISITED_PAGES_KEY = 'visitedPages';
+    var MAX_VISITED_PAGES_LENGTH = 50;
+    var CLEAR_BUTTON_TEXT = '清空今日浏览历史（谨慎操作）';
 
     // =========================================================
     // UI 状态
     // =========================================================
 
+    // 根据登录状态生成历史记录区域的空态提示。
     function getHistoryPlaceholderText(loggedIn) {
-        return loggedIn ? '暂无浏览记录' : '请先登录';
+        return '暂无浏览记录';
     }
 
+    // 渲染历史记录空态，避免列表区域出现空白。
     function renderHistoryPlaceholder(text) {
         $('#history-list').html(
             '<li class="history-placeholder"><p class="title">' + text + '</p></li>'
         );
     }
 
+    function hasChromeStorage() {
+        return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
+    }
+
+    // 读取本地最近浏览记录，弹窗列表不依赖任何后端查询。
+    function getVisitedPages() {
+        return new Promise(function(resolve) {
+            if (hasChromeStorage()) {
+                chrome.storage.local.get(VISITED_PAGES_KEY, function(data) {
+                    var pages = data && data[VISITED_PAGES_KEY];
+                    resolve(Array.isArray(pages) ? pages : []);
+                });
+                return;
+            }
+
+            if (typeof localStorage === 'undefined') {
+                resolve([]);
+                return;
+            }
+
+            try {
+                var localPages = JSON.parse(localStorage.getItem(VISITED_PAGES_KEY) || '[]');
+                resolve(Array.isArray(localPages) ? localPages : []);
+            } catch (error) {
+                resolve([]);
+            }
+        });
+    }
+
+    function setVisitedPages(pages) {
+        return new Promise(function(resolve) {
+            var safePages = Array.isArray(pages) ? pages.slice(0, MAX_VISITED_PAGES_LENGTH) : [];
+            if (hasChromeStorage()) {
+                var values = {};
+                values[VISITED_PAGES_KEY] = safePages;
+                chrome.storage.local.set(values, resolve);
+                return;
+            }
+
+            if (typeof localStorage !== 'undefined') {
+                localStorage.setItem(VISITED_PAGES_KEY, JSON.stringify(safePages));
+            }
+            resolve();
+        });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, function(char) {
+            return {
+                '&': '&amp;',
+                '<': '&lt;',
+                '>': '&gt;',
+                '"': '&quot;',
+                "'": '&#39;'
+            }[char];
+        });
+    }
+
+    function formatVisitedTime(visitedAt) {
+        var visitedDate = new Date(visitedAt);
+        if (!visitedAt || isNaN(visitedDate.getTime())) {
+            return '';
+        }
+
+        return visitedDate.toLocaleString('zh-CN', {
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+    }
+
+    function renderVisitedPages(loggedIn) {
+        if (!$('#history-list').length) {
+            return Promise.resolve();
+        }
+
+        return getVisitedPages().then(function(pages) {
+            var visiblePages = pages.filter(function(page) {
+                return page && page.url;
+            }).slice(0, MAX_VISITED_PAGES_LENGTH);
+
+            if (!visiblePages.length) {
+                renderHistoryPlaceholder(getHistoryPlaceholderText(loggedIn));
+                return;
+            }
+
+            var html = visiblePages.map(function(page) {
+                var title = page.title || '无标题页面';
+                var url = page.url || '';
+                var visitedTime = formatVisitedTime(page.visitedAt);
+                var timeHtml = visitedTime ? '<p class="visited-time">' + escapeHtml(visitedTime) + '</p>' : '';
+                return [
+                    '<li>',
+                    '<p class="title" title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</p>',
+                    '<a href="' + escapeHtml(url) + '" title="' + escapeHtml(url) + '" target="_blank" rel="noreferrer">' + escapeHtml(url) + '</a>',
+                    timeHtml,
+                    '</li>'
+                ].join('');
+            }).join('');
+
+            $('#history-list').html(html);
+        });
+    }
+
+    function isSameLocalDay(leftDate, rightDate) {
+        return leftDate.getFullYear() === rightDate.getFullYear() &&
+            leftDate.getMonth() === rightDate.getMonth() &&
+            leftDate.getDate() === rightDate.getDate();
+    }
+
+    function isTodayVisitedPage(page, today) {
+        if (!page || !page.visitedAt) {
+            return true;
+        }
+
+        var visitedDate = new Date(page.visitedAt);
+        if (isNaN(visitedDate.getTime())) {
+            return true;
+        }
+        return isSameLocalDay(visitedDate, today);
+    }
+
+    // 本地旧记录没有 visitedAt，无法判断日期，清空今日时一并移除旧格式记录。
+    function removeTodayVisitedPages() {
+        var today = new Date();
+        return getVisitedPages().then(function(pages) {
+            var remainingPages = pages.filter(function(page) {
+                return !isTodayVisitedPage(page, today);
+            });
+            return setVisitedPages(remainingPages);
+        });
+    }
+
+    function setClearButtonSubmitting(submitting) {
+        var $btn = $('#clear-all-btn');
+        $btn.prop('disabled', submitting);
+        $btn.text(submitting ? '清空中...' : CLEAR_BUTTON_TEXT);
+    }
+
+    function showClearButtonError(message) {
+        var $btn = $('#clear-all-btn');
+        $btn.text(message || '清空失败，请稍后重试');
+        setTimeout(function() {
+            if (!$btn.prop('disabled')) {
+                $btn.text(CLEAR_BUTTON_TEXT);
+            }
+        }, 2000);
+    }
+
+    // 按登录状态切换导航、总结入口、清空按钮和欢迎语。
     function updateLoginUI(loggedIn) {
-        var $nav = $('ul.nav li');
+        currentLoggedIn = loggedIn;
+        var $loginNavItem = $('#login-nav-item');
+        var $userNavItem = $('#user-nav-item');
         var $historyNavItem = $('#history-nav-item');
         var $clearAllBtn = $('#clear-all-btn');
 
         if (loggedIn) {
-            var name = localStorage.getItem(AUTH_KEY.username) || '用户';
-            $nav.eq(0).hide();
-            $nav.eq(1).text(name + ' , 欢迎您').show();
+            $loginNavItem.hide();
+            $userNavItem.show();
             $historyNavItem.show();
             $clearAllBtn.show();
-            renderHistoryPlaceholder(getHistoryPlaceholderText(true));
-        } else {
-            $nav.eq(0).show();
-            $nav.eq(1).hide();
-            $historyNavItem.hide();
-            $clearAllBtn.hide();
-            $('.history-summary').hide();
-            $('#content').show();
-            $('#history-btn').text('每日总结');
-            isShowingSummary = false;
-            renderHistoryPlaceholder(getHistoryPlaceholderText(false));
+            renderVisitedPages(true);
+
+            WebTrailAuth.getStoredSession().then(function(session) {
+                var name = session.username || '用户';
+                $('#welcome-text').text(name + ' , 欢迎您');
+            });
+            return;
         }
+
+        $loginNavItem.show();
+        $userNavItem.hide();
+        $historyNavItem.hide();
+        $clearAllBtn.hide();
+        $('.history-summary').hide();
+        $('#content').show();
+        $('#history-btn').text('每日总结');
+        isShowingSummary = false;
+        renderVisitedPages(false);
     }
 
-    var isShowingSummary = false;
+    // 切换登录/注册模式，并同步标题、说明和提交按钮文案。
+    function setAuthMode(mode) {
+        authMode = mode;
+        $('.auth-mode-btn').removeClass('active');
+        $('.auth-mode-btn[data-mode="' + mode + '"]').addClass('active');
+        hideAuthMessage();
+
+        if (mode === 'register') {
+            $('#auth-title').text('用户注册');
+            $('#auth-subtitle').text('创建账号后将自动登录');
+            $('#auth-submit-btn').text('立即注册');
+            return;
+        }
+
+        $('#auth-title').text('用户登录');
+        $('#auth-subtitle').text('请输入您的账号信息');
+        $('#auth-submit-btn').text('立即登录');
+    }
+
+    // 打开鉴权弹窗并聚焦用户名输入框。
+    function showAuthBox(mode) {
+        setAuthMode(mode || 'login');
+        $('#login-box').fadeIn(300);
+        setTimeout(function() {
+            $('#login-username').trigger('focus');
+        }, 80);
+    }
+
+    // 关闭鉴权弹窗，保留当前输入内容方便用户修正后重试。
+    function hideAuthBox() {
+        $('#login-box').fadeOut(300);
+    }
+
+    // 清空登录/注册表单中的错误和成功提示。
+    function hideAuthMessage() {
+        $('#auth-error').hide().text('');
+        $('#auth-success').hide().text('');
+    }
+
+    // 展示鉴权失败信息，并隐藏成功提示。
+    function showAuthError(message) {
+        $('#auth-success').hide().text('');
+        $('#auth-error').text(message).show();
+    }
+
+    // 展示鉴权成功过程信息，并隐藏错误提示。
+    function showAuthSuccess(message) {
+        $('#auth-error').hide().text('');
+        $('#auth-success').text(message).show();
+    }
+
+    // 将底层请求错误转换成用户可理解的提示文案。
+    function getFriendlyError(error) {
+        if (!error || !error.message || error.message === 'Failed to fetch') {
+            return '无法连接后端服务，请确认 ' + WebTrailAuth.apiBaseUrl + ' 已启动';
+        }
+        return error.message;
+    }
+
+    // 根据提交状态禁用按钮，避免重复发起注册或登录请求。
+    function setAuthSubmitting(submitting) {
+        var $btn = $('#auth-submit-btn');
+        $btn.prop('disabled', submitting);
+        if (submitting) {
+            $btn.text(authMode === 'register' ? '注册中...' : '登录中...');
+            return;
+        }
+        $btn.text(authMode === 'register' ? '立即注册' : '立即登录');
+    }
+
+    // 清空用户名、密码和提示信息，通常在登录成功后执行。
+    function clearAuthForm() {
+        $('#login-username').val('');
+        $('#login-password').val('');
+        hideAuthMessage();
+    }
+
+    // 校验表单并发起登录或注册；注册成功后自动登录。
+    function submitAuthForm() {
+        var username = $('#login-username').val().trim();
+        var password = $('#login-password').val();
+
+        if (!username || !password) {
+            showAuthError('用户名和密码不能为空');
+            return;
+        }
+
+        if (!/^[a-z0-9_]{3,32}$/i.test(username)) {
+            showAuthError('用户名只能包含字母、数字和下划线，长度为3到32位');
+            return;
+        }
+
+        if (password.length < 6) {
+            showAuthError('密码长度不能少于6位');
+            return;
+        }
+
+        hideAuthMessage();
+        setAuthSubmitting(true);
+
+        var requestPromise;
+        if (authMode === 'register') {
+            requestPromise = WebTrailAuth.register(username, password).then(function(user) {
+                showAuthSuccess('注册成功，正在登录...');
+                return WebTrailAuth.login(user.username || username, password);
+            });
+        } else {
+            requestPromise = WebTrailAuth.login(username, password);
+        }
+
+        requestPromise.then(function() {
+            updateLoginUI(true);
+            clearAuthForm();
+            hideAuthBox();
+        }).catch(function(error) {
+            showAuthError(getFriendlyError(error));
+        }).then(function() {
+            setAuthSubmitting(false);
+        });
+    }
 
     // 页面载入时恢复登录状态
-    getValidToken().then(function(token) {
+    WebTrailAuth.getValidAccessToken().then(function(token) {
         updateLoginUI(!!token);
+    }).catch(function() {
+        WebTrailAuth.clearSession().then(function() {
+            updateLoginUI(false);
+        });
     });
+
+    if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
+        chrome.storage.onChanged.addListener(function(changes, areaName) {
+            if (areaName === 'local' && changes[VISITED_PAGES_KEY]) {
+                renderVisitedPages(currentLoggedIn);
+            }
+        });
+    }
 
     // =========================================================
     // 初始化：隐藏除第一个之外的所有 summary
@@ -139,141 +361,148 @@ $(function(){
 
     // 1. 登录框的显示与隐藏
     $('#login-btn').on('click', function() {
-        $('#login-error').hide();
-        $('#login-box').fadeIn(300);
+        showAuthBox('login');
     });
 
     $('#login-close-btn').on('click', function() {
-        $('#login-box').fadeOut(300);
+        hideAuthBox();
+    });
+
+    $('.auth-mode-btn').on('click', function() {
+        setAuthMode($(this).data('mode'));
     });
 
     // 点击登录框外部关闭
     $('#login-box').on('click', function(e) {
         if (e.target.id === 'login-box') {
-            $(this).fadeOut(300);
+            hideAuthBox();
         }
     });
 
-    // 2. 登录提交
-    $('#login-submit-btn').on('click', function() {
-        var username = $('#login-username').val().trim();
-        var password = $('#login-password').val().trim();
-
-        if (!username || !password) {
-            $('#login-error').text('用户名和密码不能为空').show();
-            return;
+    $('#login-username, #login-password').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            submitAuthForm();
         }
+    });
 
+    // 2. 登录/注册提交
+    $('#auth-submit-btn').on('click', function() {
+        submitAuthForm();
+    });
+
+    // 3. 退出登录
+    $('#logout-btn').on('click', function() {
         var $btn = $(this);
-        $btn.prop('disabled', true).text('登录中...');
-        $('#login-error').hide();
-
-        $.ajax({
-            url:         'https://api.playwave.cc/user/login',
-            type:        'POST',
-            contentType: 'application/json',
-            data:        JSON.stringify({ username: username, password: password }),
-        }).done(function(res) {
-            if (res && res.code === 1) {
-                saveTokens(res, username);
-                updateLoginUI(true);
-                $('#login-box').fadeOut(300);
-                $('#login-username').val('');
-                $('#login-password').val('');
-            } else {
-                $('#login-error').text((res && res.msg) || '登录失败，请检查账号密码').show();
-            }
-        }).fail(function() {
-            $('#login-error').text('网络错误，请稍后重试').show();
-        }).always(function() {
-            $btn.prop('disabled', false).text('立即登录');
+        $btn.prop('disabled', true).text('退出中...');
+        WebTrailAuth.logout().then(function() {
+            updateLoginUI(false);
+        }).catch(function() {
+            updateLoginUI(false);
+        }).then(function() {
+            $btn.prop('disabled', false).text('退出');
         });
     });
-    
-    // 3. 历史总结与历史记录的切换
+
+    // 4. 历史总结与历史记录的切换
     $('#history-btn').on('click', function() {
         if (!isShowingSummary) {
-            // 显示历史总结
             $('.history-summary').show();
             $('#content').hide();
             $(this).text('返回历史记录');
             isShowingSummary = true;
-        } else {
-            // 返回历史记录
-            $('.history-summary').hide();
-            $('#content').fadeIn();
-            $(this).text('每日总结');
-            isShowingSummary = false;
+            return;
         }
+
+        $('.history-summary').hide();
+        $('#content').fadeIn();
+        $(this).text('每日总结');
+        isShowingSummary = false;
     });
 
-    // 4. 清空历史记录
+    // 5. 清空历史记录
     $('#clear-all-btn').on('click', function() {
-        if (confirm('确定要清空今日所有浏览历史吗？此操作不可恢复！')) {
-            $('#history-list').fadeOut(300, function() {
-                var loggedIn = $('ul.nav li').eq(0).is(':hidden');
-                renderHistoryPlaceholder(getHistoryPlaceholderText(loggedIn));
-                $(this).fadeIn(300);
-            });
+        if (!confirm('确定要清空今日所有浏览历史吗？此操作不可恢复！')) {
+            return;
         }
+
+        var clearFailed = false;
+        setClearButtonSubmitting(true);
+
+        WebTrailAuth.requestProtectedJson('/api/cleanTodayTrail', {
+            method: 'POST'
+        }).then(function(res) {
+            if (!res) {
+                throw new Error('请先登录后清空');
+            }
+            return removeTodayVisitedPages();
+        }).then(function() {
+            $('#history-list').fadeOut(300, function() {
+                renderVisitedPages(currentLoggedIn).then(function() {
+                    $('#history-list').fadeIn(300);
+                });
+            });
+        }).catch(function(error) {
+            clearFailed = true;
+            console.error('清空今日浏览历史失败:', error);
+            showClearButtonError(error && error.message === '请先登录后清空' ? '请先登录后清空' : '清空失败，请稍后重试');
+        }).then(function() {
+            $('#clear-all-btn').prop('disabled', false);
+            if (!clearFailed) {
+                $('#clear-all-btn').text(CLEAR_BUTTON_TEXT);
+            }
+        });
     });
 
-    // 5. 历史总结的展开收起功能
+    // 6. 历史总结的展开收起功能
     $(document).on('click', '.summary-hide', function(e) {
         e.preventDefault();
-        const $this = $(this);
-        const $li = $this.closest('li');
-        const $summary = $li.find('.summary');
-        
+        var $this = $(this);
+        var $li = $this.closest('li');
+        var $summary = $li.find('.summary');
+
         if ($summary.is(':visible')) {
             $summary.slideUp(300);
             $this.text('展开');
             $li.addClass('collapsed');
-        } else {
-            $summary.slideDown(300);
-            $this.text('隐藏');
-            $li.removeClass('collapsed');
+            return;
         }
+
+        $summary.slideDown(300);
+        $this.text('隐藏');
+        $li.removeClass('collapsed');
     });
 
-    // 6. 点击日期或查看更多打开详情页
+    // 7. 点击日期或查看更多打开详情页
     $(document).on('click', '.collapsed .date p, .summary-more', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        dateText = $(this).data('time');
-        // 使用 chrome.tabs.create 打开新标签页（浏览器扩展方式）
+        var dateText = $(this).data('time');
+
         if (typeof chrome !== 'undefined' && chrome.tabs) {
             chrome.tabs.create({
                 url: chrome.runtime.getURL('detail.html') + '?date=' + encodeURIComponent(dateText)
             });
-        } else {
-            // 降级方案：使用 window.open
-            window.open('detail.html?date=' + encodeURIComponent(dateText), '_blank');
+            return;
         }
+
+        window.open('detail.html?date=' + encodeURIComponent(dateText), '_blank');
     });
-
-
-
-
 
     // 判断当前页面是否是 detail.html
     var currentPath = window.location.pathname;
     if (currentPath.endsWith('detail.html') || currentPath === '/detail.html' || currentPath === 'detail.html') {
-        // 获取查询字符串
-        var queryString = window.location.search.substring(1); // 去掉开头的 '?'
-
-        // 将查询字符串解析为对象
+        var queryString = window.location.search.substring(1);
         var params = {};
         var pairs = queryString.split('&');
+
         for (var i = 0; i < pairs.length; i++) {
             var pair = pairs[i].split('=');
             params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
         }
 
-        // 获取 date 的值
-        var dateValue = params['date'];
-        //请求后端 拿到这一天的总结数据
-        
-        
-    } 
+        var dateValue = params.date;
+        if (dateValue) {
+            $('.detail-title').text(dateValue + ' 总结');
+        }
+    }
 });

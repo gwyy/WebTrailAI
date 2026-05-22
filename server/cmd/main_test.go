@@ -1,12 +1,9 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"strings"
 	"testing"
-
-	"github.com/sdomino/scribble"
 )
 
 type Fish struct {
@@ -27,15 +24,15 @@ func TestB(t *testing.T) {
 	log.Printf("处理后: %q\n", cleanInput(data))
 }
 
-func TestA(t *testing.T) {
-	dir := "./filedb"
-	db, err := scribble.New(dir, nil)
-	if err != nil {
-		log.Fatal(err)
-	}
-	fish := &Fish{}
-	if err := db.Read("fish", "onefish", fish); err != nil {
-		fmt.Println("Error", err)
-	}
-	fmt.Println(fish.Name)
-}
+//func TestA(t *testing.T) {
+//	dir := "./filedb"
+//	db, err := scribble.New(dir, nil)
+//	if err != nil {
+//		log.Fatal(err)
+//	}
+//	fish := &Fish{}
+//	if err := db.Read("fish", "onefish", fish); err != nil {
+//		fmt.Println("Error", err)
+//	}
+//	fmt.Println(fish.Name)
+//}

@@ -145,4 +145,39 @@ func TestRegisterLoginAndProtectedRoute(t *testing.T) {
 	if code, ok := protectedBody["code"].(float64); !ok || int(code) != 0 {
 		t.Fatalf("受保护接口 code 不正确: %v", protectedBody["code"])
 	}
+
+	trailReq := httptest.NewRequest(http.MethodPost, "/api/trailAdd", strings.NewReader(`{"url":"https://example.com/page","title":"示例页面"}`))
+	trailReq.Header.Set("Content-Type", "application/json")
+	trailReq.Header.Set("Authorization", "Bearer "+accessToken)
+	trailResp := httptest.NewRecorder()
+	engine.ServeHTTP(trailResp, trailReq)
+
+	if trailResp.Code != http.StatusOK {
+		t.Fatalf("添加浏览记录接口状态码错误，期望 200，实际 %d，响应：%s", trailResp.Code, trailResp.Body.String())
+	}
+
+	trailBody := map[string]any{}
+	if err := json.Unmarshal(trailResp.Body.Bytes(), &trailBody); err != nil {
+		t.Fatalf("解析添加浏览记录响应失败: %v", err)
+	}
+	if code, ok := trailBody["code"].(float64); !ok || int(code) != 0 {
+		t.Fatalf("添加浏览记录响应 code 不正确: %v", trailBody["code"])
+	}
+
+	cleanReq := httptest.NewRequest(http.MethodPost, "/api/cleanTodayTrail", nil)
+	cleanReq.Header.Set("Authorization", "Bearer "+accessToken)
+	cleanResp := httptest.NewRecorder()
+	engine.ServeHTTP(cleanResp, cleanReq)
+
+	if cleanResp.Code != http.StatusOK {
+		t.Fatalf("清空今日浏览记录接口状态码错误，期望 200，实际 %d，响应：%s", cleanResp.Code, cleanResp.Body.String())
+	}
+
+	cleanBody := map[string]any{}
+	if err := json.Unmarshal(cleanResp.Body.Bytes(), &cleanBody); err != nil {
+		t.Fatalf("解析清空今日浏览记录响应失败: %v", err)
+	}
+	if code, ok := cleanBody["code"].(float64); !ok || int(code) != 0 {
+		t.Fatalf("清空今日浏览记录响应 code 不正确: %v", cleanBody["code"])
+	}
 }

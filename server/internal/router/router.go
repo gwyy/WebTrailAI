@@ -48,6 +48,8 @@ func (r *Router) Init(gin *gin.Engine) {
 	protected.Use(authJwtMiddleware.MiddlewareFunc()) // ← 关键！所有下面接口都要登录
 	{
 		protected.GET("/list", r.ctrl.TrailList)
+		protected.POST("/trailAdd", r.ctrl.TrailAdd)
+		protected.POST("/cleanTodayTrail", r.ctrl.CleanTodayTrail)
 	}
 }
 
