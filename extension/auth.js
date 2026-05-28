@@ -171,6 +171,16 @@
         return (username || '').trim().toLowerCase();
     }
 
+    // 根据登录用户生成账号隔离的本地存储键，避免不同账号共用浏览历史。
+    function buildUserScopedStorageKey(baseKey, session) {
+        var owner = session && (session.username || session.userId);
+        var normalizedOwner = String(owner || '').trim().toLowerCase();
+        if (!baseKey || !normalizedOwner) {
+            return '';
+        }
+        return baseKey + ':' + encodeURIComponent(normalizedOwner);
+    }
+
     // 判断时间戳是否过期，预留少量提前量避免临界点请求失败。
     function isExpired(expiresAt) {
         var expiresAtNumber = parseInt(expiresAt, 10);
@@ -332,6 +342,7 @@
     global.WebTrailAuth = {
         keys: AUTH_KEY,
         apiBaseUrl: API_BASE_URL,
+        buildUserScopedStorageKey: buildUserScopedStorageKey,
         buildUrl: buildUrl,
         clearSession: clearSession,
         getStoredSession: getStoredSession,

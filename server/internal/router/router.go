@@ -43,11 +43,14 @@ func (r *Router) Init(gin *gin.Engine) {
 
 	// ==================== 其他 公开路由（不需要 Token）===================
 	gin.POST("/register", r.ctrl.Register)
+	gin.GET("/debug/summary", r.ctrl.DebugRunSummary)
 	// ==================== 保护路由组（需要 Token）===================
 	protected := gin.Group("/api")                    // 你可以改成 /admin、/user 等
 	protected.Use(authJwtMiddleware.MiddlewareFunc()) // ← 关键！所有下面接口都要登录
 	{
 		protected.GET("/list", r.ctrl.TrailList)
+		protected.GET("/summaryList", r.ctrl.SummaryList)
+		protected.GET("/summaryDetail", r.ctrl.SummaryDetail)
 		protected.POST("/trailAdd", r.ctrl.TrailAdd)
 		protected.POST("/cleanTodayTrail", r.ctrl.CleanTodayTrail)
 	}

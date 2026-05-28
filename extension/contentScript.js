@@ -1,11 +1,13 @@
-// 内容脚本只提供当前页面的标题和 URL，正文内容不进入本地存储或后端上报。
+// 内容脚本提供当前页面的标题、URL 和正文文本；正文只用于后端上报。
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'getPageDetails') {
         const title = document.title;
         const url = window.location.href;
+        const innerText = document.body ? document.body.innerText : '';
         sendResponse({
             title: title,
-            url: url
+            url: url,
+            innerText: innerText
         });
     }
 });

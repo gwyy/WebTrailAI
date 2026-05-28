@@ -7,9 +7,12 @@ $(function() {
     var authMode = 'login';
     var isShowingSummary = false;
     var currentLoggedIn = false;
-    var VISITED_PAGES_KEY = 'visitedPages';
+    var BASE_VISITED_PAGES_KEY = 'visitedPages';
+    var currentVisitedPagesKey = '';
     var MAX_VISITED_PAGES_LENGTH = 50;
+    var MIN_TRAIL_TITLE_CHARS = 8;
     var CLEAR_BUTTON_TEXT = '清空今日浏览历史（谨慎操作）';
+    var summaryRequestVersion = 0;
 
     // =========================================================
     // UI 状态
@@ -27,16 +30,237 @@ $(function() {
         );
     }
 
+    function renderSummaryPlaceholder(text) {
+        if (!$('#summary-list').length) {
+            return;
+        }
+
+        $('#summary-list').html(
+            '<li class="summary-placeholder"><p class="summary-placeholder-text">' + escapeHtml(text) + '</p></li>'
+        );
+    }
+
+    function normalizeSummaryDate(dateText) {
+        var normalizedDate = String(dateText || '').trim();
+        if (/^\d{8}$/.test(normalizedDate)) {
+            return normalizedDate;
+        }
+        if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedDate)) {
+            return normalizedDate.replace(/-/g, '');
+        }
+        return '';
+    }
+
+    function formatSummaryDate(dateText) {
+        var normalizedDate = normalizeSummaryDate(dateText);
+        if (!normalizedDate) {
+            return String(dateText || '');
+        }
+
+        return [
+            normalizedDate.slice(0, 4),
+            normalizedDate.slice(4, 6),
+            normalizedDate.slice(6, 8)
+        ].join('-');
+    }
+
+    function stripSummaryTags(summary) {
+        return String(summary || '')
+            .replace(/<br\s*\/?>/gi, ' ')
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\*\*/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    function formatSummaryHtml(summary) {
+        var escapedSummary = escapeHtml(String(summary || '').replace(/\r\n?/g, '\n'));
+        escapedSummary = escapedSummary.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+        escapedSummary = escapedSummary.replace(/\n/g, '<br>');
+        return escapedSummary.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+    }
+
+    function renderSummaryList(list) {
+        if (!$('#summary-list').length) {
+            return;
+        }
+
+        var items = Array.isArray(list) ? list : [];
+        if (!items.length) {
+            renderSummaryPlaceholder('暂无每日总结');
+            return;
+        }
+
+        var html = items.map(function(item) {
+            var canonicalDate = normalizeSummaryDate(item && item.date);
+            var displayDate = formatSummaryDate(canonicalDate);
+            var previewText = stripSummaryTags(item && item.summary);
+            var partCount = item && item.partCount ? String(item.partCount) : '0';
+
+            return [
+                '<li class="summary-item">',
+                '<div class="date">',
+                '<p class="summary-date-text" data-time="' + escapeHtml(canonicalDate) + '">' + escapeHtml(displayDate) + '</p>',
+                '</div>',
+                '<div class="summary" title="' + escapeHtml(previewText) + '">' + escapeHtml(previewText || '暂无总结内容') + '</div>',
+                '<div class="summary-item-footer">',
+                '<span class="summary-part-count">分片 ' + escapeHtml(partCount) + '</span>',
+                '<a class="summary-more" data-time="' + escapeHtml(canonicalDate) + '" href="javascript:void(0)">查看明细</a>',
+                '</div>',
+                '</li>'
+            ].join('');
+        }).join('');
+
+        $('#summary-list').html(html);
+    }
+
+    function fetchSummaryList() {
+        if (!$('#summary-list').length) {
+            return Promise.resolve();
+        }
+        if (!currentLoggedIn) {
+            renderSummaryPlaceholder('请先登录后查看每日总结');
+            return Promise.resolve();
+        }
+
+        summaryRequestVersion += 1;
+        var currentRequestVersion = summaryRequestVersion;
+        renderSummaryPlaceholder('每日总结加载中...');
+
+        return WebTrailAuth.requestProtectedJson('/api/summaryList').then(function(res) {
+            if (currentRequestVersion !== summaryRequestVersion) {
+                return;
+            }
+            if (!res) {
+                throw new Error('请先登录后查看每日总结');
+            }
+
+            var data = res.data || {};
+            renderSummaryList(data.list);
+        }).catch(function(error) {
+            if (currentRequestVersion !== summaryRequestVersion) {
+                return;
+            }
+            renderSummaryPlaceholder(getFriendlyError(error));
+        });
+    }
+
+    function renderDetailError(message) {
+        $('#detail-content').html(
+            '<div class="detail-empty">' + escapeHtml(message || '加载失败，请稍后重试') + '</div>'
+        );
+        $('#detail-parts').hide().empty();
+    }
+
+    function renderDetailContent(detail) {
+        var summaryText = detail && detail.summary ? detail.summary : '';
+        var parts = detail && Array.isArray(detail.parts) ? detail.parts : [];
+        var summaryHtml = formatSummaryHtml(summaryText);
+
+        $('#detail-content').html(summaryHtml || '<div class="detail-empty">暂无总结内容</div>');
+
+        if (!parts.length) {
+            $('#detail-parts').hide().empty();
+            return;
+        }
+
+        var html = [
+            '<h2 class="detail-section-title">分片摘要</h2>',
+            '<div class="detail-part-list">'
+        ];
+
+        parts.forEach(function(part) {
+            html.push(
+                '<section class="detail-part-item">' +
+                '<h3>第 ' + escapeHtml(part.index) + ' 段</h3>' +
+                '<div class="detail-part-content">' + formatSummaryHtml(part.content) + '</div>' +
+                '</section>'
+            );
+        });
+
+        html.push('</div>');
+        $('#detail-parts').html(html.join('')).show();
+    }
+
+    function openSummaryDetail(dateText) {
+        var normalizedDate = normalizeSummaryDate(dateText);
+        if (!normalizedDate) {
+            return;
+        }
+
+        if (typeof chrome !== 'undefined' && chrome.tabs) {
+            chrome.tabs.create({
+                url: chrome.runtime.getURL('detail.html') + '?date=' + encodeURIComponent(normalizedDate)
+            });
+            return;
+        }
+
+        window.open('detail.html?date=' + encodeURIComponent(normalizedDate), '_blank');
+    }
+
+    function initDetailPage() {
+        if (!$('#detail-content').length) {
+            return;
+        }
+
+        var queryString = window.location.search.substring(1);
+        var params = {};
+        var pairs = queryString ? queryString.split('&') : [];
+
+        for (var i = 0; i < pairs.length; i++) {
+            var pair = pairs[i].split('=');
+            params[decodeURIComponent(pair[0] || '')] = decodeURIComponent(pair[1] || '');
+        }
+
+        var normalizedDate = normalizeSummaryDate(params.date);
+        if (!normalizedDate) {
+            $('.detail-title').text('每日总结详情');
+            renderDetailError('缺少有效日期参数');
+            return;
+        }
+
+        $('.detail-title').text(formatSummaryDate(normalizedDate) + ' 总结');
+        $('#detail-content').html('<div class="detail-empty">每日总结加载中...</div>');
+
+        WebTrailAuth.requestProtectedJson('/api/summaryDetail?date=' + encodeURIComponent(normalizedDate)).then(function(res) {
+            if (!res) {
+                throw new Error('请先登录后查看每日总结详情');
+            }
+
+            var data = res.data || {};
+            if (data.date) {
+                $('.detail-title').text(formatSummaryDate(data.date) + ' 总结');
+            }
+            renderDetailContent(data);
+        }).catch(function(error) {
+            renderDetailError(getFriendlyError(error));
+        });
+    }
+
     function hasChromeStorage() {
         return typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local;
     }
 
-    // 读取本地最近浏览记录，弹窗列表不依赖任何后端查询。
-    function getVisitedPages() {
+    function updateVisitedPagesKey(session) {
+        currentVisitedPagesKey = WebTrailAuth.buildUserScopedStorageKey(BASE_VISITED_PAGES_KEY, session);
+        return currentVisitedPagesKey;
+    }
+
+    function getVisitedPagesKey() {
+        return WebTrailAuth.getStoredSession().then(function(session) {
+            return updateVisitedPagesKey(session);
+        });
+    }
+
+    function getVisitedPagesFromKey(storageKey) {
+        if (!storageKey) {
+            return Promise.resolve([]);
+        }
+
         return new Promise(function(resolve) {
             if (hasChromeStorage()) {
-                chrome.storage.local.get(VISITED_PAGES_KEY, function(data) {
-                    var pages = data && data[VISITED_PAGES_KEY];
+                chrome.storage.local.get(storageKey, function(data) {
+                    var pages = data && data[storageKey];
                     resolve(Array.isArray(pages) ? pages : []);
                 });
                 return;
@@ -48,7 +272,7 @@ $(function() {
             }
 
             try {
-                var localPages = JSON.parse(localStorage.getItem(VISITED_PAGES_KEY) || '[]');
+                var localPages = JSON.parse(localStorage.getItem(storageKey) || '[]');
                 resolve(Array.isArray(localPages) ? localPages : []);
             } catch (error) {
                 resolve([]);
@@ -56,18 +280,81 @@ $(function() {
         });
     }
 
-    function setVisitedPages(pages) {
-        return new Promise(function(resolve) {
-            var safePages = Array.isArray(pages) ? pages.slice(0, MAX_VISITED_PAGES_LENGTH) : [];
-            if (hasChromeStorage()) {
-                var values = {};
-                values[VISITED_PAGES_KEY] = safePages;
-                chrome.storage.local.set(values, resolve);
+    // 读取当前账号的本地最近浏览记录，弹窗列表不依赖任何后端查询。
+    function getVisitedPages() {
+        return getVisitedPagesKey().then(function(storageKey) {
+            return getVisitedPagesFromKey(storageKey);
+        });
+    }
+
+    function setVisitedPagesForKey(storageKey, pages) {
+        if (!storageKey) {
+            return Promise.resolve();
+        }
+
+        var expectedStorageKey = storageKey;
+        return getVisitedPagesKey().then(function(latestStorageKey) {
+            if (latestStorageKey !== expectedStorageKey) {
                 return;
             }
 
-            if (typeof localStorage !== 'undefined') {
-                localStorage.setItem(VISITED_PAGES_KEY, JSON.stringify(safePages));
+            return new Promise(function(resolve) {
+                var safePages = Array.isArray(pages) ? pages.slice(0, MAX_VISITED_PAGES_LENGTH) : [];
+                if (hasChromeStorage()) {
+                    var values = {};
+                    values[expectedStorageKey] = safePages;
+                    chrome.storage.local.set(values, resolve);
+                    return;
+                }
+
+                if (typeof localStorage !== 'undefined') {
+                    if (currentVisitedPagesKey === expectedStorageKey) {
+                        localStorage.setItem(expectedStorageKey, JSON.stringify(safePages));
+                    }
+                }
+                resolve();
+            });
+        });
+    }
+
+    function setVisitedPages(pages) {
+        return getVisitedPagesKey().then(function(storageKey) {
+            return setVisitedPagesForKey(storageKey, pages);
+        });
+    }
+
+    function cleanupLegacyVisitedPages() {
+        var today = new Date();
+        return new Promise(function(resolve) {
+            if (hasChromeStorage()) {
+                chrome.storage.local.get(BASE_VISITED_PAGES_KEY, function(data) {
+                    var pages = data && data[BASE_VISITED_PAGES_KEY];
+                    var todayPages = filterTodayVisitedPages(Array.isArray(pages) ? pages : [], today);
+                    if (!Array.isArray(pages) || todayPages.length === pages.length) {
+                        resolve();
+                        return;
+                    }
+
+                    var values = {};
+                    values[BASE_VISITED_PAGES_KEY] = todayPages;
+                    chrome.storage.local.set(values, resolve);
+                });
+                return;
+            }
+
+            if (typeof localStorage === 'undefined') {
+                resolve();
+                return;
+            }
+
+            try {
+                var localPages = JSON.parse(localStorage.getItem(BASE_VISITED_PAGES_KEY) || '[]');
+                var todayLocalPages = filterTodayVisitedPages(Array.isArray(localPages) ? localPages : [], today);
+                if (Array.isArray(localPages) && todayLocalPages.length !== localPages.length) {
+                    localStorage.setItem(BASE_VISITED_PAGES_KEY, JSON.stringify(todayLocalPages));
+                }
+            } catch (error) {
+                // 旧全局数据异常时不影响账号隔离历史读取。
             }
             resolve();
         });
@@ -99,37 +386,16 @@ $(function() {
         });
     }
 
-    function renderVisitedPages(loggedIn) {
-        if (!$('#history-list').length) {
-            return Promise.resolve();
-        }
+    function getTrailTitle(page) {
+        return (page && page.title ? page.title : '').trim();
+    }
 
-        return getVisitedPages().then(function(pages) {
-            var visiblePages = pages.filter(function(page) {
-                return page && page.url;
-            }).slice(0, MAX_VISITED_PAGES_LENGTH);
+    function getTrailTitleLength(title) {
+        return Array.from((title || '').trim()).length;
+    }
 
-            if (!visiblePages.length) {
-                renderHistoryPlaceholder(getHistoryPlaceholderText(loggedIn));
-                return;
-            }
-
-            var html = visiblePages.map(function(page) {
-                var title = page.title || '无标题页面';
-                var url = page.url || '';
-                var visitedTime = formatVisitedTime(page.visitedAt);
-                var timeHtml = visitedTime ? '<p class="visited-time">' + escapeHtml(visitedTime) + '</p>' : '';
-                return [
-                    '<li>',
-                    '<p class="title" title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</p>',
-                    '<a href="' + escapeHtml(url) + '" title="' + escapeHtml(url) + '" target="_blank" rel="noreferrer">' + escapeHtml(url) + '</a>',
-                    timeHtml,
-                    '</li>'
-                ].join('');
-            }).join('');
-
-            $('#history-list').html(html);
-        });
+    function isTrailTitleTooShort(title) {
+        return getTrailTitleLength(title) < MIN_TRAIL_TITLE_CHARS;
     }
 
     function isSameLocalDay(leftDate, rightDate) {
@@ -150,14 +416,131 @@ $(function() {
         return isSameLocalDay(visitedDate, today);
     }
 
+    function filterTodayVisitedPages(pages, today) {
+        if (!Array.isArray(pages)) {
+            return [];
+        }
+
+        return pages.filter(function(page) {
+            return isTodayVisitedPage(page, today);
+        });
+    }
+
+    // 弹窗每次读取历史时清理当前账号的跨天遗留数据，保证列表只展示当天浏览记录。
+    function cleanupExpiredVisitedPagesForKey(storageKey) {
+        var today = new Date();
+        return getVisitedPagesFromKey(storageKey).then(function(pages) {
+            var todayPages = filterTodayVisitedPages(pages, today);
+
+            if (todayPages.length === pages.length) {
+                return todayPages;
+            }
+
+            return setVisitedPagesForKey(storageKey, todayPages).then(function() {
+                return todayPages;
+            });
+        });
+    }
+
+    function cleanupExpiredVisitedPages() {
+        return getVisitedPagesKey().then(function(storageKey) {
+            return cleanupExpiredVisitedPagesForKey(storageKey);
+        });
+    }
+
+    // 本地旧记录没有 visitedAt，无法判断日期，按当天处理，避免重复或无效标题继续展示。
+    function getVisitedDayKey(page) {
+        if (!page || !page.visitedAt) {
+            return 'unknown';
+        }
+
+        var visitedDate = new Date(page.visitedAt);
+        if (isNaN(visitedDate.getTime())) {
+            return 'unknown';
+        }
+        return [
+            visitedDate.getFullYear(),
+            visitedDate.getMonth() + 1,
+            visitedDate.getDate()
+        ].join('-');
+    }
+
+    function filterDisplayableVisitedPages(pages) {
+        var seenTitleByDay = {};
+        return pages.filter(function(page) {
+            if (!page || !page.url) {
+                return false;
+            }
+
+            var title = getTrailTitle(page);
+            if (isTrailTitleTooShort(title)) {
+                return false;
+            }
+
+            var duplicateKey = getVisitedDayKey(page) + '|' + title;
+            if (seenTitleByDay[duplicateKey]) {
+                return false;
+            }
+
+            seenTitleByDay[duplicateKey] = true;
+            return true;
+        });
+    }
+
+    function renderVisitedPages(loggedIn) {
+        if (!$('#history-list').length) {
+            return Promise.resolve();
+        }
+
+        return getVisitedPagesKey().then(function(expectedStorageKey) {
+            return cleanupExpiredVisitedPagesForKey(expectedStorageKey).then(function(pages) {
+                return getVisitedPagesKey().then(function(latestStorageKey) {
+                    if (latestStorageKey !== expectedStorageKey) {
+                        return;
+                    }
+
+                    if (!loggedIn) {
+                        renderHistoryPlaceholder(getHistoryPlaceholderText(false));
+                        return;
+                    }
+
+                    var visiblePages = filterDisplayableVisitedPages(pages).slice(0, MAX_VISITED_PAGES_LENGTH);
+
+                    if (!visiblePages.length) {
+                        renderHistoryPlaceholder(getHistoryPlaceholderText(loggedIn));
+                        return;
+                    }
+
+                    var html = visiblePages.map(function(page) {
+                        var title = page.title || '无标题页面';
+                        var url = page.url || '';
+                        var visitedTime = formatVisitedTime(page.visitedAt);
+                        var timeHtml = visitedTime ? '<p class="visited-time">' + escapeHtml(visitedTime) + '</p>' : '';
+                        return [
+                            '<li>',
+                            '<p class="title" title="' + escapeHtml(title) + '">' + escapeHtml(title) + '</p>',
+                            '<a href="' + escapeHtml(url) + '" title="' + escapeHtml(url) + '" target="_blank" rel="noreferrer">' + escapeHtml(url) + '</a>',
+                            timeHtml,
+                            '</li>'
+                        ].join('');
+                    }).join('');
+
+                    $('#history-list').html(html);
+                });
+            });
+        });
+    }
+
     // 本地旧记录没有 visitedAt，无法判断日期，清空今日时一并移除旧格式记录。
     function removeTodayVisitedPages() {
         var today = new Date();
-        return getVisitedPages().then(function(pages) {
-            var remainingPages = pages.filter(function(page) {
-                return !isTodayVisitedPage(page, today);
+        return getVisitedPagesKey().then(function(storageKey) {
+            return getVisitedPagesFromKey(storageKey).then(function(pages) {
+                var remainingPages = pages.filter(function(page) {
+                    return !isTodayVisitedPage(page, today);
+                });
+                return setVisitedPagesForKey(storageKey, remainingPages);
             });
-            return setVisitedPages(remainingPages);
         });
     }
 
@@ -190,11 +573,14 @@ $(function() {
             $userNavItem.show();
             $historyNavItem.show();
             $clearAllBtn.show();
-            renderVisitedPages(true);
 
             WebTrailAuth.getStoredSession().then(function(session) {
+                updateVisitedPagesKey(session);
                 var name = session.username || '用户';
                 $('#welcome-text').text(name + ' , 欢迎您');
+                return cleanupLegacyVisitedPages();
+            }).then(function() {
+                renderVisitedPages(true);
             });
             return;
         }
@@ -207,7 +593,11 @@ $(function() {
         $('#content').show();
         $('#history-btn').text('每日总结');
         isShowingSummary = false;
-        renderVisitedPages(false);
+        renderSummaryPlaceholder('请先登录后查看每日总结');
+        updateVisitedPagesKey(null);
+        cleanupLegacyVisitedPages().then(function() {
+            renderVisitedPages(false);
+        });
     }
 
     // 切换登录/注册模式，并同步标题、说明和提交按钮文案。
@@ -342,22 +732,11 @@ $(function() {
 
     if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.onChanged) {
         chrome.storage.onChanged.addListener(function(changes, areaName) {
-            if (areaName === 'local' && changes[VISITED_PAGES_KEY]) {
+            if (areaName === 'local' && currentVisitedPagesKey && changes[currentVisitedPagesKey]) {
                 renderVisitedPages(currentLoggedIn);
             }
         });
     }
-
-    // =========================================================
-    // 初始化：隐藏除第一个之外的所有 summary
-    // =========================================================
-    $('.history-summary ul li').each(function(index) {
-        if (index > 0) {
-            $(this).find('.summary').hide();
-            $(this).find('.summary-hide').text('展开');
-            $(this).addClass('collapsed');
-        }
-    });
 
     // 1. 登录框的显示与隐藏
     $('#login-btn').on('click', function() {
@@ -410,6 +789,7 @@ $(function() {
             $('#content').hide();
             $(this).text('返回历史记录');
             isShowingSummary = true;
+            fetchSummaryList();
             return;
         }
 
@@ -453,56 +833,16 @@ $(function() {
         });
     });
 
-    // 6. 历史总结的展开收起功能
-    $(document).on('click', '.summary-hide', function(e) {
-        e.preventDefault();
-        var $this = $(this);
-        var $li = $this.closest('li');
-        var $summary = $li.find('.summary');
-
-        if ($summary.is(':visible')) {
-            $summary.slideUp(300);
-            $this.text('展开');
-            $li.addClass('collapsed');
-            return;
-        }
-
-        $summary.slideDown(300);
-        $this.text('隐藏');
-        $li.removeClass('collapsed');
-    });
-
-    // 7. 点击日期或查看更多打开详情页
-    $(document).on('click', '.collapsed .date p, .summary-more', function(e) {
+    // 6. 点击日期或查看更多打开详情页
+    $(document).on('click', '.summary-date-text, .summary-more', function(e) {
         e.preventDefault();
         e.stopPropagation();
-        var dateText = $(this).data('time');
-
-        if (typeof chrome !== 'undefined' && chrome.tabs) {
-            chrome.tabs.create({
-                url: chrome.runtime.getURL('detail.html') + '?date=' + encodeURIComponent(dateText)
-            });
-            return;
-        }
-
-        window.open('detail.html?date=' + encodeURIComponent(dateText), '_blank');
+        openSummaryDetail($(this).data('time'));
     });
 
     // 判断当前页面是否是 detail.html
     var currentPath = window.location.pathname;
     if (currentPath.endsWith('detail.html') || currentPath === '/detail.html' || currentPath === 'detail.html') {
-        var queryString = window.location.search.substring(1);
-        var params = {};
-        var pairs = queryString.split('&');
-
-        for (var i = 0; i < pairs.length; i++) {
-            var pair = pairs[i].split('=');
-            params[decodeURIComponent(pair[0])] = decodeURIComponent(pair[1] || '');
-        }
-
-        var dateValue = params.date;
-        if (dateValue) {
-            $('.detail-title').text(dateValue + ' 总结');
-        }
+        initDetailPage();
     }
 });

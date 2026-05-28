@@ -5,3 +5,4 @@ server/filedb/
 .continue/
 .claude/
 .vscode/
+server/config.yaml

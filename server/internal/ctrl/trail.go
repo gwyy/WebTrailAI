@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gwyy/WebTrailAI/server/internal/model/filedb"
 	"github.com/gwyy/WebTrailAI/server/internal/model/request"
 	"github.com/gwyy/WebTrailAI/server/internal/model/response"
 )
@@ -33,16 +34,40 @@ func (ctrl *Ctrl) TrailAdd(c *gin.Context) {
 		return
 	}
 
-	trail, total, err := ctrl.srv.AddTrail(c.Request.Context(), jwtUser.ID, &trailReq)
+	result, err := ctrl.srv.AddTrail(c.Request.Context(), jwtUser.ID, &trailReq)
 	if err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return
 	}
 
+	if result.Filtered {
+		response.OkWithMessageAndData("浏览记录已过滤", gin.H{
+			"trail":    nil,
+			"total":    result.Total,
+			"filtered": true,
+			"reason":   result.Reason,
+		}, c)
+		return
+	}
+
 	response.OkWithMessageAndData("添加成功", gin.H{
-		"trail": trail,
-		"total": total,
+		"trail":    buildTrailResponse(result.Trail),
+		"total":    result.Total,
+		"filtered": false,
 	}, c)
+}
+
+func buildTrailResponse(trail *filedb.Trail) gin.H {
+	if trail == nil {
+		return nil
+	}
+
+	return gin.H{
+		"title":      trail.Title,
+		"url":        trail.URL,
+		"user_id":    trail.UserID,
+		"created_at": trail.CreatedAt,
+	}
 }
 
 /*

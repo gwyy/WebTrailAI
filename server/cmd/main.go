@@ -17,6 +17,7 @@ import (
 	"github.com/gwyy/WebTrailAI/server/internal/router"
 	"github.com/gwyy/WebTrailAI/server/internal/service"
 	scribble_manager "github.com/gwyy/WebTrailAI/server/pkg/scribble-manager"
+	"github.com/gwyy/WebTrailAI/server/pkg/utils"
 )
 
 func main() {
@@ -33,7 +34,20 @@ func main() {
 	if err != nil {
 		newLogger.Fatal(err)
 	}
+	//实例化 service
 	newService := service.NewService(newConfig, newLogger, newSm)
+
+	//实例化 阿里云 大模型接口
+	if llmClient, err := utils.NewDashScopeClient(utils.LLMOptions{
+		APIKey:  newConfig.GetString("ai.dashscope_api_key"),
+		BaseURL: newConfig.GetString("ai.base-url"),
+		Model:   newConfig.GetString("ai.model"),
+		Timeout: time.Duration(newConfig.GetInt("ai.timeout-seconds")) * time.Second,
+	}); err != nil {
+		newLogger.Warnf("大模型客户端初始化失败，每日浏览总结任务将不可用: %v", err)
+	} else {
+		newService.SetLLMClient(llmClient)
+	}
 	//实例化 controller
 	newCtrl := ctrl.NewCtrl(newService, newConfig, newLogger)
 	newRouter := router.NewRouter(newCtrl, newConfig, newLogger)
@@ -66,10 +80,22 @@ func main() {
 	默认前端文件运行地址:http://127.0.0.1%s
 `, newConfig.GetString("name"), newConfig.GetString("version"), address)
 
+	//实现 crontab
+	var summaryScheduler *service.SummaryScheduler
+	if newConfig.GetBool("summary.enabled") {
+		summaryScheduler = service.NewSummaryScheduler(newService)
+		if err = summaryScheduler.Start(context.Background(), newConfig.GetString("summary.cron")); err != nil {
+			newLogger.Errorf("每日浏览总结任务启动失败: %v", err)
+		}
+	}
+
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	//在此阻塞
 	<-quit
+	if summaryScheduler != nil {
+		summaryScheduler.Stop()
+	}
 	//等待 5 秒
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
