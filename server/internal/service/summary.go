@@ -53,7 +53,7 @@ func (s *Service) GenerateYesterdaySummaries(ctx context.Context) (*SummaryRunRe
 func (s *Service) RunYesterdaySummaryOnce(ctx context.Context) (*SummaryRunResult, error) {
 	s.summaryRunMu.Lock()
 	defer s.summaryRunMu.Unlock()
-
+	s.log.Infof("开始生成大模型总结，当前时间：%s", time.Now().Format("2006-01-02 15:04:05"))
 	return s.GenerateYesterdaySummaries(ctx)
 }
 
@@ -75,11 +75,11 @@ func (s *Service) GenerateDailySummaries(ctx context.Context, targetDate time.Ti
 		Date:      targetDate.Format("20060102"),
 		UserCount: len(users),
 	}
+	//遍历用户生成总结
 	for _, user := range users {
 		if err = ctx.Err(); err != nil {
 			return result, err
 		}
-
 		userResult, userErr := s.GenerateUserDailySummary(ctx, user.ID, targetDate)
 		if userErr != nil {
 			result.FailedCount++
@@ -90,6 +90,8 @@ func (s *Service) GenerateDailySummaries(ctx context.Context, targetDate time.Ti
 			result.SkippedCount++
 			continue
 		}
+		//记录日志
+		s.log.Infof("生成: user_id=%d date=%s 总结成功", user.ID, result.Date)
 		result.SuccessCount++
 	}
 
@@ -135,6 +137,8 @@ func (s *Service) GenerateUserDailySummary(ctx context.Context, userID int, targ
 		if err != nil {
 			return nil, fmt.Errorf("生成第 %d 个分片总结失败: %w", index, err)
 		}
+		//记录成功日志
+		s.log.Infof("用户 Id：%d, 日期：%s, 生成第 %d 个分片总结成功！", userID, date, index)
 		parts = append(parts, filedb.SummaryPart{
 			Index:   index,
 			Titles:  collectSummaryPartTitles(trails[start:end]),
@@ -146,7 +150,8 @@ func (s *Service) GenerateUserDailySummary(ctx context.Context, userID int, targ
 	if err != nil {
 		return nil, fmt.Errorf("生成最终总结失败: %w", err)
 	}
-
+	//记录成功日志
+	s.log.Infof("用户 Id：%d, 日期：%s, 生成第最终总结成功！", userID, date)
 	summary := &filedb.Summary{
 		Pars:    parts,
 		Summary: finalSummary,

@@ -1,7 +1,7 @@
 (function(global) {
     'use strict';
 
-    var API_BASE_URL = 'http://localhost:3459';
+    var API_BASE_URL = 'https://webtrail.zmz8.com/';
     var REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
     var EXPIRE_SKEW_MS = 30 * 1000;
 
@@ -72,7 +72,7 @@
         });
     }
 
-    // 删除指定存储键，退出登录或刷新失败时用于清理登录态。
+    // 删除指定存储键，退出登录或确认登录态失效时用于清理登录态。
     function storageRemove(keys) {
         return new Promise(function(resolve) {
             if (hasChromeStorage()) {
@@ -114,6 +114,17 @@
         return (data && (data.message || data.msg || data.error)) || fallback;
     }
 
+    // 区分后端不可用和登录态真实失效，避免本地调试重启服务时误退出登录。
+    function isNetworkError(error) {
+        return !!error && (
+            error.isNetworkError === true ||
+            error.name === 'TypeError' ||
+            error.message === 'Failed to fetch' ||
+            error.message === 'Load failed' ||
+            error.message === 'NetworkError when attempting to fetch resource.'
+        );
+    }
+
     // 发送 JSON 请求并统一处理状态码、响应解析和 Bearer Token。
     function requestJson(path, options) {
         var requestOptions = options || {};
@@ -140,6 +151,11 @@
                 }
                 return data;
             });
+        }).catch(function(error) {
+            if (isNetworkError(error)) {
+                error.isNetworkError = true;
+            }
+            throw error;
         });
     }
 
@@ -280,7 +296,7 @@
         });
     }
 
-    // 使用 refresh token 刷新 access token，失败时清理登录态并要求重新登录。
+    // 使用 refresh token 刷新 access token；后端不可用时保留登录态，等服务恢复后再刷新。
     function refreshSession() {
         return getStoredSession().then(function(session) {
             if (!session.accessToken || !session.refreshToken || isExpired(session.refreshExpires)) {
@@ -300,7 +316,10 @@
                 return saveSession(res, session.username, session.userId).then(function() {
                     return res.access_token;
                 });
-            }).catch(function() {
+            }).catch(function(error) {
+                if (isNetworkError(error)) {
+                    throw error;
+                }
                 return clearSession().then(function() {
                     return null;
                 });
@@ -347,6 +366,7 @@
         clearSession: clearSession,
         getStoredSession: getStoredSession,
         getValidAccessToken: getValidAccessToken,
+        isNetworkError: isNetworkError,
         isExpired: isExpired,
         login: login,
         logout: logout,

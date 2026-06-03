@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
@@ -25,6 +26,11 @@ func NewConfig(file string) Config {
 	v := viper.New()
 	v.SetConfigFile(file)
 	v.SetConfigType("yaml")
+	v.SetEnvPrefix("WEBTRAIL")
+	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_", "-", "_"))
+	v.AutomaticEnv()
+	mustBindEnv(v, "secret", "WEBTRAIL_SECRET")
+	mustBindEnv(v, "ai.dashscope_api_key", "WEBTRAIL_AI_DASHSCOPE_API_KEY")
 	err := v.ReadInConfig()
 	if err != nil {
 		panic(err)
@@ -40,6 +46,9 @@ func NewConfig(file string) Config {
 	})
 	// 初始 Unmarshal
 	if err = cfg.Unmarshal(&appConfig); err != nil {
+		panic(err)
+	}
+	if err = validateConfig(cfg); err != nil {
 		panic(err)
 	}
 	return cfg
@@ -65,4 +74,20 @@ func (c *viperConfig) Unmarshal(target interface{}) error {
 func (c *viperConfig) WatchConfig(onChange func(e fsnotify.Event)) {
 	c.v.WatchConfig()
 	c.v.OnConfigChange(onChange)
+}
+
+func mustBindEnv(v *viper.Viper, key string, envVars ...string) {
+	if err := v.BindEnv(append([]string{key}, envVars...)...); err != nil {
+		panic(err)
+	}
+}
+
+func validateConfig(cfg Config) error {
+	if cfg.GetString("mode") == "test" {
+		return nil
+	}
+	if strings.TrimSpace(cfg.GetString("secret")) == "" {
+		return fmt.Errorf("启动失败：请在 config.yaml 的 secret 或 WEBTRAIL_SECRET 中配置 JWT 签名密钥")
+	}
+	return nil
 }

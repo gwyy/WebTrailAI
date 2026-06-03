@@ -1,0 +1,60 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="630" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#0F172A"/>
+      <stop offset="0.52" stop-color="#12384A"/>
+      <stop offset="1" stop-color="#164E63"/>
+    </linearGradient>
+    <linearGradient id="panel" x1="194" y1="112" x2="1006" y2="540" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#E0F2FE"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="287" y1="197" x2="470" y2="354" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#14B8A6"/>
+      <stop offset="1" stop-color="#3B82F6"/>
+    </linearGradient>
+    <filter id="shadow" x="154" y="78" width="892" height="508" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="24" stdDeviation="26" flood-color="#020617" flood-opacity="0.32"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <path d="M82 548H1118" stroke="#94A3B8" stroke-opacity="0.18" stroke-width="1"/>
+  <path d="M102 88H1098" stroke="#94A3B8" stroke-opacity="0.12" stroke-width="1"/>
+
+  <g filter="url(#shadow)">
+    <rect x="194" y="112" width="812" height="428" rx="28" fill="url(#panel)"/>
+    <rect x="194" y="112" width="812" height="72" rx="28" fill="#FFFFFF"/>
+    <path d="M194 158H1006" stroke="#CBD5E1" stroke-width="1"/>
+    <circle cx="232" cy="148" r="9" fill="#FB7185"/>
+    <circle cx="262" cy="148" r="9" fill="#FBBF24"/>
+    <circle cx="292" cy="148" r="9" fill="#34D399"/>
+    <rect x="338" y="132" width="424" height="32" rx="16" fill="#F1F5F9"/>
+    <text x="362" y="153" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="15">webtrail://today</text>
+
+    <rect x="236" y="218" width="292" height="278" rx="18" fill="#FFFFFF"/>
+    <text x="264" y="260" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="24" font-weight="700">今日浏览轨迹</text>
+    <rect x="264" y="286" width="206" height="12" rx="6" fill="#CBD5E1"/>
+    <rect x="264" y="326" width="230" height="44" rx="12" fill="#ECFEFF"/>
+    <rect x="282" y="341" width="124" height="10" rx="5" fill="#0EA5E9"/>
+    <rect x="282" y="356" width="178" height="8" rx="4" fill="#94A3B8"/>
+    <rect x="264" y="386" width="230" height="44" rx="12" fill="#F0FDF4"/>
+    <rect x="282" y="401" width="146" height="10" rx="5" fill="#22C55E"/>
+    <rect x="282" y="416" width="164" height="8" rx="4" fill="#94A3B8"/>
+    <rect x="264" y="446" width="230" height="44" rx="12" fill="#FFF7ED"/>
+    <rect x="282" y="461" width="136" height="10" rx="5" fill="#F97316"/>
+    <rect x="282" y="476" width="184" height="8" rx="4" fill="#94A3B8"/>
+
+    <rect x="574" y="218" width="388" height="278" rx="18" fill="#0F172A"/>
+    <rect x="612" y="254" width="84" height="28" rx="14" fill="url(#accent)"/>
+    <text x="628" y="273" fill="#FFFFFF" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14" font-weight="700">AI 复盘</text>
+    <text x="612" y="322" fill="#F8FAFC" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="800">把昨天读过的网页</text>
+    <text x="612" y="360" fill="#F8FAFC" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="28" font-weight="800">整理成今天的洞察</text>
+    <rect x="612" y="398" width="276" height="10" rx="5" fill="#38BDF8"/>
+    <rect x="612" y="424" width="232" height="10" rx="5" fill="#2DD4BF"/>
+    <rect x="612" y="450" width="310" height="10" rx="5" fill="#FBBF24"/>
+  </g>
+
+  <text x="600" y="62" fill="#F8FAFC" text-anchor="middle" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="44" font-weight="850">WebTrailAI</text>
+  <text x="600" y="592" fill="#CFFAFE" text-anchor="middle" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="22">记录每天的浏览路径，第二天交给 AI 做一份有温度的总结</text>
+</svg>

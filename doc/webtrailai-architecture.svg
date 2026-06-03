@@ -1,0 +1,71 @@
+<svg width="1200" height="620" viewBox="0 0 1200 620" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="620" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#F0FDF4"/>
+    </linearGradient>
+    <filter id="shadow" x="-20" y="-20" width="500" height="260" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="14" stdDeviation="14" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+  </defs>
+
+  <rect width="1200" height="620" fill="url(#bg)"/>
+  <text x="600" y="58" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="800">WebTrailAI 系统架构</text>
+  <text x="600" y="92" text-anchor="middle" fill="#475569" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17">原生 Chrome 插件 + Gin 后端 + 本地文件数据库 + DashScope 兼容大模型接口</text>
+
+  <g transform="translate(72 142)" filter="url(#shadow)">
+    <rect width="300" height="354" rx="24" fill="#FFFFFF"/>
+    <rect x="0" y="0" width="300" height="68" rx="24" fill="#0F766E"/>
+    <text x="28" y="43" fill="#FFFFFF" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="800">Chrome Extension</text>
+    <rect x="28" y="96" width="244" height="52" rx="14" fill="#ECFEFF"/>
+    <text x="48" y="129" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">manifest.json / MV3</text>
+    <rect x="28" y="166" width="244" height="52" rx="14" fill="#F0FDF4"/>
+    <text x="48" y="199" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">background.js 采集上报</text>
+    <rect x="28" y="236" width="244" height="52" rx="14" fill="#EFF6FF"/>
+    <text x="48" y="269" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">popup / detail 展示</text>
+    <text x="28" y="326" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">登录后记录当天轨迹，按账号隔离本地存储</text>
+  </g>
+
+  <path d="M392 318H456" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <text x="424" y="300" text-anchor="middle" fill="#475569" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">HTTPS / JSON</text>
+
+  <g transform="translate(476 142)" filter="url(#shadow)">
+    <rect width="300" height="354" rx="24" fill="#FFFFFF"/>
+    <rect x="0" y="0" width="300" height="68" rx="24" fill="#1D4ED8"/>
+    <text x="28" y="43" fill="#FFFFFF" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="22" font-weight="800">Go Server</text>
+    <rect x="28" y="96" width="244" height="52" rx="14" fill="#EFF6FF"/>
+    <text x="48" y="129" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">Gin Router + gin-jwt</text>
+    <rect x="28" y="166" width="244" height="52" rx="14" fill="#F8FAFC"/>
+    <text x="48" y="199" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">Ctrl / Service / Model</text>
+    <rect x="28" y="236" width="244" height="52" rx="14" fill="#FEF3C7"/>
+    <text x="48" y="269" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">Cron 每日总结任务</text>
+    <text x="28" y="326" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">注册、登录、上报、清空、总结列表与详情</text>
+  </g>
+
+  <path d="M796 258H860" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+  <path d="M796 388H860" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <g transform="translate(880 122)" filter="url(#shadow)">
+    <rect width="300" height="184" rx="24" fill="#FFFFFF"/>
+    <rect x="0" y="0" width="300" height="62" rx="24" fill="#BE123C"/>
+    <text x="28" y="39" fill="#FFFFFF" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="800">本地文件数据</text>
+    <text x="30" y="96" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">Scribble JSON 文件库</text>
+    <text x="30" y="130" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">users / trails / summary</text>
+    <text x="30" y="156" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">适合个人自部署与轻量使用</text>
+  </g>
+
+  <g transform="translate(880 348)" filter="url(#shadow)">
+    <rect width="300" height="184" rx="24" fill="#FFFFFF"/>
+    <rect x="0" y="0" width="300" height="62" rx="24" fill="#B45309"/>
+    <text x="28" y="39" fill="#FFFFFF" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="21" font-weight="800">大模型服务</text>
+    <text x="30" y="96" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="700">DashScope 兼容接口</text>
+    <text x="30" y="130" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">按分片生成，再合成最终总结</text>
+    <text x="30" y="156" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="14">可通过配置切换模型与地址</text>
+  </g>
+
+  <rect x="116" y="542" width="968" height="44" rx="16" fill="#0F172A"/>
+  <text x="600" y="570" text-anchor="middle" fill="#DCFCE7" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="16" font-weight="650">Docker 镜像内置 nginx 反代，容器 80 端口转发到 Go 服务 3459 端口</text>
+</svg>

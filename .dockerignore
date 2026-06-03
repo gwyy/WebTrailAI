@@ -1,0 +1,27 @@
+# 排除 Git 仓库目录；镜像构建不需要历史记录，也避免泄露提交信息。
+.git
+
+# 排除 Git 忽略规则文件；运行镜像不需要它。
+.gitignore
+
+# 排除 macOS 自动生成的目录元数据文件。
+.DS_Store
+
+# 本地运行数据和日志只允许通过 volume 持久化，不打进镜像。
+
+# 排除本地文件数据库，避免把用户浏览记录和账号数据打进镜像。
+server/filedb
+
+# 排除本地日志，避免镜像体积变大和泄露本机运行信息。
+server/logs
+
+# 排除真实本地配置；镜像只使用 deploy/config.yaml.template 初始化外置配置。
+server/config.yaml
+
+# 排除本地手动编译出的后端二进制，镜像内会重新编译生成。
+server/server
+
+# 浏览器插件当前不参与后端镜像构建，排除可缩小构建上下文。
+
+# 排除浏览器插件目录；当前 Docker 镜像只部署 Go 后端加 nginx 反代。
+extension

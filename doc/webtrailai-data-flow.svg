@@ -1,0 +1,71 @@
+<svg width="1200" height="520" viewBox="0 0 1200 520" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1200" y2="520" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#F8FAFC"/>
+      <stop offset="1" stop-color="#ECFEFF"/>
+    </linearGradient>
+    <marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="6" orient="auto" markerUnits="strokeWidth">
+      <path d="M2 2L10 6L2 10" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </marker>
+    <filter id="shadow" x="-20" y="-20" width="250" height="180" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="12" stdDeviation="12" flood-color="#0F172A" flood-opacity="0.12"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="520" fill="url(#bg)"/>
+  <text x="600" y="62" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="34" font-weight="800">从浏览记录到每日总结</text>
+  <text x="600" y="96" text-anchor="middle" fill="#475569" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17">插件负责采集，后端负责鉴权、存储与定时总结，AI 只参与汇总阶段</text>
+
+  <g transform="translate(52 174)" filter="url(#shadow)">
+    <rect width="154" height="138" rx="18" fill="#FFFFFF"/>
+    <circle cx="77" cy="43" r="23" fill="#DBEAFE"/>
+    <path d="M66 45H90M70 36H86M71 54H85" stroke="#2563EB" stroke-width="5" stroke-linecap="round"/>
+    <text x="77" y="92" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">浏览网页</text>
+    <text x="77" y="116" text-anchor="middle" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="13">http / https</text>
+  </g>
+
+  <path d="M218 243H286" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <g transform="translate(306 174)" filter="url(#shadow)">
+    <rect width="154" height="138" rx="18" fill="#FFFFFF"/>
+    <circle cx="77" cy="43" r="23" fill="#CCFBF1"/>
+    <path d="M66 36H88V58H66V36ZM88 44H96V66H74V58" stroke="#0F766E" stroke-width="4" stroke-linejoin="round"/>
+    <text x="77" y="92" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">插件采集</text>
+    <text x="77" y="116" text-anchor="middle" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="13">标题 / URL / 正文</text>
+  </g>
+
+  <path d="M472 243H540" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <g transform="translate(560 174)" filter="url(#shadow)">
+    <rect width="154" height="138" rx="18" fill="#FFFFFF"/>
+    <circle cx="77" cy="43" r="23" fill="#FEF3C7"/>
+    <path d="M64 57V37L77 29L90 37V57L77 65L64 57Z" stroke="#D97706" stroke-width="4" stroke-linejoin="round"/>
+    <text x="77" y="92" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">Go API</text>
+    <text x="77" y="116" text-anchor="middle" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="13">JWT 鉴权</text>
+  </g>
+
+  <path d="M726 243H794" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <g transform="translate(814 174)" filter="url(#shadow)">
+    <rect width="154" height="138" rx="18" fill="#FFFFFF"/>
+    <circle cx="77" cy="43" r="23" fill="#FCE7F3"/>
+    <path d="M59 37C59 31 74 28 77 28C80 28 95 31 95 37V59C95 65 80 68 77 68C74 68 59 65 59 59V37Z" stroke="#DB2777" stroke-width="4"/>
+    <path d="M59 38C59 44 74 47 77 47C80 47 95 44 95 38" stroke="#DB2777" stroke-width="4"/>
+    <text x="77" y="92" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">文件库</text>
+    <text x="77" y="116" text-anchor="middle" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="13">Scribble JSON</text>
+  </g>
+
+  <path d="M968 243H1036" stroke="#334155" stroke-width="2.4" marker-end="url(#arrow)"/>
+
+  <g transform="translate(1056 174)" filter="url(#shadow)">
+    <rect width="154" height="138" rx="18" fill="#FFFFFF"/>
+    <circle cx="77" cy="43" r="23" fill="#DCFCE7"/>
+    <path d="M62 48C72 26 91 32 94 48C91 66 70 70 62 48Z" stroke="#16A34A" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M70 48H86" stroke="#16A34A" stroke-width="4" stroke-linecap="round"/>
+    <text x="77" y="92" text-anchor="middle" fill="#0F172A" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="18" font-weight="700">AI 总结</text>
+    <text x="77" y="116" text-anchor="middle" fill="#64748B" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="13">每天 02:00</text>
+  </g>
+
+  <rect x="228" y="374" width="744" height="58" rx="18" fill="#0F172A"/>
+  <text x="600" y="409" text-anchor="middle" fill="#E0F2FE" font-family="Inter, PingFang SC, Microsoft YaHei, Arial, sans-serif" font-size="17" font-weight="650">本地弹窗只保留当天最近 50 条；后端按用户和日期保存，第二天生成可查看的总结列表与详情</text>
+</svg>

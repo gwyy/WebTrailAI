@@ -1,31 +1,31 @@
 name: web-trail-ai
-mode: "dev" # dev test prod
+mode: "prod" # dev test prod
 version: "0.0.1"
-secret: "wlzH68@G"
+secret: ""
 
 gin:
   host: localhost
   ip: 0.0.0.0
   port: 3459
   timeout: 5
-  pprof: true
+  pprof: false
   prefix: ""
   readtimeout: "1s"
   writetimeout: "1s"
 
 db:
-  filedir: "./filedb"
+  filedir: "/opt/webtrailai/server/filedb"
 
 log:
-  # 日志等级(-1:Debug, 0:Info, 1:Warn, 2:Error, 3:DPanic, 4:Panic, 5:Fatal, -1<=level<=5, 参照zap.level源码)
+  # 日志等级(-1:Debug, 0:Info, 1:Warn, 2:Error, 3:DPanic, 4:Panic, 5:Fatal, -1<=level<=5, 参照 zap.level 源码)
   level: 0
   # 日志路径
-  path: logs
-  # 文件最大大小, M
+  path: "/opt/webtrailai/server/logs"
+  # 文件最大大小，单位 MB
   max-size: 50
   # 备份数
   max-backups: 10
-  # 存放时间, 天
+  # 存放时间，单位天
   max-age: 3
   # 是否压缩
   compress: false
@@ -41,5 +41,5 @@ summary:
   # 每天凌晨 2 点生成前一天全部账号的浏览总结
   cron: "0 2 * * *"
   # 调试接口默认关闭；启用后可通过 GET /debug/summary?action=run_yesterday_summary&token=... 手动触发一次
-  debug-enabled: true
+  debug-enabled: false
   debug-token: "123"

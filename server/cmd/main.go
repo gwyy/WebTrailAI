@@ -52,10 +52,10 @@ func main() {
 	newCtrl := ctrl.NewCtrl(newService, newConfig, newLogger)
 	newRouter := router.NewRouter(newCtrl, newConfig, newLogger)
 
+	// 设置 gin 模式必须早于 gin.New，否则生产环境仍会输出 debug 模式提示。
+	gin.SetMode(getGinMode(newConfig.GetString("mode")))
 	engine := gin.New()        //gin 引擎
 	engine.Use(gin.Recovery()) //添加 recovery 中间件
-	//设置gin模式
-	gin.SetMode(getGinMode(newConfig.GetString("mode")))
 	if newConfig.GetString("mode") == "dev" || newConfig.GetString("mode") == "test" {
 		engine.Use(gin.Logger())
 	}

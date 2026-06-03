@@ -653,7 +653,7 @@ $(function() {
 
     // 将底层请求错误转换成用户可理解的提示文案。
     function getFriendlyError(error) {
-        if (!error || !error.message || error.message === 'Failed to fetch') {
+        if (!error || !error.message || (WebTrailAuth.isNetworkError && WebTrailAuth.isNetworkError(error))) {
             return '无法连接后端服务，请确认 ' + WebTrailAuth.apiBaseUrl + ' 已启动';
         }
         return error.message;
@@ -724,7 +724,14 @@ $(function() {
     // 页面载入时恢复登录状态
     WebTrailAuth.getValidAccessToken().then(function(token) {
         updateLoginUI(!!token);
-    }).catch(function() {
+    }).catch(function(error) {
+        if (WebTrailAuth.isNetworkError && WebTrailAuth.isNetworkError(error)) {
+            WebTrailAuth.getStoredSession().then(function(session) {
+                updateLoginUI(!!(session && session.accessToken));
+            });
+            return;
+        }
+
         WebTrailAuth.clearSession().then(function() {
             updateLoginUI(false);
         });
