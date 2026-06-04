@@ -1,7 +1,7 @@
 (function(global) {
     'use strict';
 
-    var API_BASE_URL = 'https://webtrail.zmz8.com/';
+    var API_BASE_URL = 'https://你的后端地址/';
     var REFRESH_TTL_MS = 7 * 24 * 60 * 60 * 1000;
     var EXPIRE_SKEW_MS = 30 * 1000;
 

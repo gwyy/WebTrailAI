@@ -107,7 +107,7 @@ go run ./cmd --conf ./config.yaml
 插件默认请求地址在 `extension/auth.js`：
 
 ```js
-var API_BASE_URL = 'https://webtrail.zmz8.com/';
+var API_BASE_URL = 'https://你的后端服务器地址/';
 ```
 
 本地调试或自部署时，把它改成你的后端地址，例如：
