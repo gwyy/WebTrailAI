@@ -34,12 +34,12 @@ ai:
   dashscope_api_key: ""
   base-url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   model: "qwen3.6-plus"
-  timeout-seconds: 60
+  timeout-seconds: 6000
 
 summary:
   enabled: true
   # 每天凌晨 2 点生成前一天全部账号的浏览总结
   cron: "0 2 * * *"
   # 调试接口默认关闭；启用后可通过 GET /debug/summary?action=run_yesterday_summary&token=... 手动触发一次
-  debug-enabled: false
+  debug-enabled: true
   debug-token: "123"

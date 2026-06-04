@@ -1,6 +1,7 @@
 package ctrl
 
 import (
+	"context"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -32,7 +33,8 @@ func (ctrl *Ctrl) DebugRunSummary(c *gin.Context) {
 		return
 	}
 
-	result, err := ctrl.srv.RunYesterdaySummaryOnce(c.Request.Context())
+	// 调试接口会触发较长的大模型任务，不能被浏览器刷新、curl 断开或反代读超时连带取消。
+	result, err := ctrl.srv.RunYesterdaySummaryOnce(context.WithoutCancel(c.Request.Context()))
 	if err != nil {
 		response.FailWithMessage(err.Error(), c)
 		return

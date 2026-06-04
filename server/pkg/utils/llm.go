@@ -14,7 +14,7 @@ import (
 const (
 	defaultDashScopeBaseURL = "https://dashscope.aliyuncs.com/compatible-mode/v1"
 	defaultDashScopeModel   = "qwen-plus"
-	defaultLLMTimeout       = 60 * time.Second
+	defaultLLMTimeout       = 6000 * time.Second
 )
 
 var (

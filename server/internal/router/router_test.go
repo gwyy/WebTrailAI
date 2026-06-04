@@ -498,7 +498,9 @@ func TestDebugSummaryTriggersYesterdaySummary(t *testing.T) {
 	engine.Use(gin.Recovery())
 	newRouter.Init(engine)
 
-	req := httptest.NewRequest(http.MethodGet, "/debug/summary?action=run_yesterday_summary&token=test-debug-token", nil)
+	reqCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	req := httptest.NewRequest(http.MethodGet, "/debug/summary?action=run_yesterday_summary&token=test-debug-token", nil).WithContext(reqCtx)
 	resp := httptest.NewRecorder()
 	engine.ServeHTTP(resp, req)
 

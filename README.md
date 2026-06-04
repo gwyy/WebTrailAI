@@ -16,6 +16,16 @@ WebTrailAI 是一个面向个人自部署的浏览器插件开源项目。插件
 - **总结列表与详情页**：插件内可查看每日总结列表，并打开详情页阅读完整内容。
 - **轻量自部署**：后端使用 Gin + Scribble 文件数据库，Docker 镜像内置 nginx 反向代理。
 
+## 界面演示
+
+### 浏览列表
+
+![WebTrailAI 浏览列表演示](doc/list.gif)
+
+### 每日总结
+
+![WebTrailAI 每日总结截图](doc/summary.png)
+
 ## 效果与流程
 
 ![WebTrailAI 数据流](doc/webtrailai-data-flow.svg)
